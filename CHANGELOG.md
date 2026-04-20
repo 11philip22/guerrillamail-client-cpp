@@ -17,12 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Internal `CurlSession` transport wrapper with request/response types, cookie persistence, request headers, timeout, proxy, and TLS verification support.
 - Focused unit and loopback integration tests covering error classification, JSON syntax vs response-shape parsing, cookie persistence, and transport failure mapping.
 - Bootstrap session initialization with homepage token extraction and mock-server coverage for bootstrap success, failure classification, and cookie continuity.
+- Minimal internal AJAX request helpers for Rust-aligned `check_email` probe URL and header construction.
+- Opt-in live GuerrillaMail validation coverage for bootstrap success, token extraction, AJAX header sufficiency, and cookie-backed session behavior.
+- Integration test guidance and WOL-172 notes for rerunning and interpreting live protocol validation findings.
 
 ### Changed
 - Expanded `guerrillamail::Error` to carry optional HTTP status information for `http_status` failures.
 - Replaced transport and parsing placeholders with working internal foundations for later bootstrap and API-request implementation.
 - Expanded `ClientOptions` with bootstrap transport knobs for timeout, proxy, and TLS verification.
 - Made `Client` move-only to avoid sharing one mutable transport session across copies.
+- Derived AJAX probe `site` and origin metadata from the configured endpoint instead of hardcoding production-only request values.
+- Aligned AJAX probe URL validation with header construction so malformed endpoint URLs fail early as `invalid_argument` errors.
 
 ### Fixed
 - Hardened internal libcurl setup and response-code handling by checking configuration and info-query return codes instead of silently ignoring failures.
@@ -31,3 +36,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed a dangling-reference footgun from the internal JSON parsing helper surface.
 - Added explicit POST transport coverage alongside additional transport-failure tests for connection, proxy, and TLS verification errors.
 - Made request-header cleanup exception-safe in the transport layer so header lists are released even when setup throws before request execution.
+- Corrected the documented `ctest` live-test command to match the Catch-discovered test name.
