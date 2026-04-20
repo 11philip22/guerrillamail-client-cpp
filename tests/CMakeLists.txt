@@ -2,8 +2,10 @@ include(Catch)
 
 add_executable(guerrillamail-cpp-tests
     test_main.cpp
+    unit/bootstrap_test.cpp
     unit/error_test.cpp
     unit/parsing_test.cpp
+    integration/client_bootstrap_test.cpp
     unit/smoke_test.cpp
     integration/curl_session_test.cpp
     support/mock_http_server.cpp

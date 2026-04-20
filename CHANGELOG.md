@@ -16,10 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic example program linked only through the public library target.
 - Internal `CurlSession` transport wrapper with request/response types, cookie persistence, request headers, timeout, proxy, and TLS verification support.
 - Focused unit and loopback integration tests covering error classification, JSON syntax vs response-shape parsing, cookie persistence, and transport failure mapping.
+- Bootstrap session initialization with homepage token extraction and mock-server coverage for bootstrap success, failure classification, and cookie continuity.
 
 ### Changed
 - Expanded `guerrillamail::Error` to carry optional HTTP status information for `http_status` failures.
 - Replaced transport and parsing placeholders with working internal foundations for later bootstrap and API-request implementation.
+- Expanded `ClientOptions` with bootstrap transport knobs for timeout, proxy, and TLS verification.
+- Made `Client` move-only to avoid sharing one mutable transport session across copies.
 
 ### Fixed
 - Hardened internal libcurl setup and response-code handling by checking configuration and info-query return codes instead of silently ignoring failures.
@@ -27,3 +30,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Validated transport timeout values before passing them to libcurl so negative and oversized values become clear `invalid_argument` errors.
 - Removed a dangling-reference footgun from the internal JSON parsing helper surface.
 - Added explicit POST transport coverage alongside additional transport-failure tests for connection, proxy, and TLS verification errors.
+- Made request-header cleanup exception-safe in the transport layer so header lists are released even when setup throws before request execution.

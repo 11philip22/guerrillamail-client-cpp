@@ -15,6 +15,40 @@ namespace guerrillamail::transport {
 
 namespace {
 
+class ScopedHeaderList {
+public:
+    explicit ScopedHeaderList(CURL* handle) : handle_(handle) {}
+
+    ~ScopedHeaderList() {
+        if (handle_ != nullptr) {
+            curl_easy_setopt(handle_, CURLOPT_HTTPHEADER, nullptr);
+        }
+        curl_slist_free_all(list_);
+    }
+
+    ScopedHeaderList(const ScopedHeaderList&) = delete;
+    ScopedHeaderList& operator=(const ScopedHeaderList&) = delete;
+
+    void append(const std::string& header) {
+        auto* const next = curl_slist_append(list_, header.c_str());
+        if (next == nullptr) {
+            throw guerrillamail::Error(
+                guerrillamail::ErrorCode::internal,
+                "curl_slist_append failed"
+            );
+        }
+        list_ = next;
+    }
+
+    [[nodiscard]] curl_slist* get() const noexcept {
+        return list_;
+    }
+
+private:
+    CURL* handle_ = nullptr;
+    curl_slist* list_ = nullptr;
+};
+
 void check_curl_code(CURLcode code, const char* operation) {
     if (code != CURLE_OK) {
         throw guerrillamail::Error(
@@ -169,20 +203,12 @@ Response CurlSession::execute(const Request& request) {
     check_curl_code(curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &write_callback), "CURLOPT_WRITEFUNCTION");
     check_curl_code(curl_easy_setopt(handle, CURLOPT_WRITEDATA, &response_body), "CURLOPT_WRITEDATA");
 
-    curl_slist* header_list = nullptr;
+    ScopedHeaderList header_list(handle);
     for (const auto& header : request.headers) {
         const auto combined = header.name + ": " + header.value;
-        auto* const next = curl_slist_append(header_list, combined.c_str());
-        if (next == nullptr) {
-            curl_slist_free_all(header_list);
-            throw guerrillamail::Error(
-                guerrillamail::ErrorCode::internal,
-                "curl_slist_append failed"
-            );
-        }
-        header_list = next;
+        header_list.append(combined);
     }
-    check_curl_code(curl_easy_setopt(handle, CURLOPT_HTTPHEADER, header_list), "CURLOPT_HTTPHEADER");
+    check_curl_code(curl_easy_setopt(handle, CURLOPT_HTTPHEADER, header_list.get()), "CURLOPT_HTTPHEADER");
 
     switch (request.method) {
     case HttpMethod::get:
@@ -210,9 +236,6 @@ Response CurlSession::execute(const Request& request) {
     }
 
     const auto result = curl_easy_perform(handle);
-
-    curl_easy_setopt(handle, CURLOPT_HTTPHEADER, nullptr);
-    curl_slist_free_all(header_list);
 
     if (result != CURLE_OK) {
         throw guerrillamail::Error(

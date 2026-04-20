@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <type_traits>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -12,10 +13,21 @@ TEST_CASE("error stores error code", "[smoke]") {
     REQUIRE(error.code() == guerrillamail::ErrorCode::internal);
 }
 
-TEST_CASE("client create constructs placeholder client", "[smoke]") {
-    const auto client = guerrillamail::Client::create();
+TEST_CASE("client options expose bootstrap transport knobs", "[smoke]") {
+    const guerrillamail::ClientOptions options;
 
-    REQUIRE_THROWS_AS(client.create_email("demo"), guerrillamail::Error);
+    REQUIRE(options.base_url.empty());
+    REQUIRE(options.ajax_url.empty());
+    REQUIRE(options.timeout == std::chrono::milliseconds(30000));
+    REQUIRE(options.verify_tls);
+    REQUIRE_FALSE(options.proxy.has_value());
+}
+
+TEST_CASE("client is movable but not copyable", "[smoke]") {
+    REQUIRE_FALSE(std::is_copy_constructible_v<guerrillamail::Client>);
+    REQUIRE_FALSE(std::is_copy_assignable_v<guerrillamail::Client>);
+    REQUIRE(std::is_move_constructible_v<guerrillamail::Client>);
+    REQUIRE(std::is_move_assignable_v<guerrillamail::Client>);
 }
 
 TEST_CASE("test support resolves repository paths", "[smoke]") {

@@ -1,7 +1,9 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -14,11 +16,19 @@ namespace guerrillamail {
 struct ClientOptions {
     std::string base_url;
     std::string ajax_url;
+    std::chrono::milliseconds timeout{30000};
+    std::optional<std::string> proxy;
+    bool verify_tls = true;
 };
 
 class Client {
 public:
     static Client create(const ClientOptions& options = {});
+
+    Client(const Client&) = delete;
+    Client& operator=(const Client&) = delete;
+    Client(Client&&) noexcept = default;
+    Client& operator=(Client&&) noexcept = default;
 
     std::string create_email(std::string_view alias = {}) const;
     std::vector<Message> get_messages(std::string_view email) const;
