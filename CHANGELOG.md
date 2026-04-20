@@ -20,3 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Expanded `guerrillamail::Error` to carry optional HTTP status information for `http_status` failures.
 - Replaced transport and parsing placeholders with working internal foundations for later bootstrap and API-request implementation.
+
+### Fixed
+- Hardened internal libcurl setup and response-code handling by checking configuration and info-query return codes instead of silently ignoring failures.
+- Made request-header list construction fail safely instead of risking dropped headers and leaked state on `curl_slist_append` failure.
+- Validated transport timeout values before passing them to libcurl so negative and oversized values become clear `invalid_argument` errors.
+- Removed a dangling-reference footgun from the internal JSON parsing helper surface.
+- Added explicit POST transport coverage alongside additional transport-failure tests for connection, proxy, and TLS verification errors.

@@ -55,6 +55,22 @@ TEST_CASE("curl session sends custom headers", "[transport]") {
     REQUIRE(response.body == "demo");
 }
 
+TEST_CASE("curl session sends post method and body", "[transport]") {
+    MockHttpServer server([](const MockHttpRequest& request) {
+        return MockHttpResponse{200, {}, request.method + ":" + request.body};
+    });
+
+    CurlSession session;
+    const auto response = session.execute(Request{
+        HttpMethod::post,
+        server.url("submit"),
+        {Header{"Content-Type", "application/x-www-form-urlencoded"}},
+        "alpha=beta"
+    });
+
+    REQUIRE(response.body == "POST:alpha=beta");
+}
+
 TEST_CASE("cookies persist across requests in one session", "[transport]") {
     MockHttpServer server([](const MockHttpRequest& request) {
         if (request.path == "/set-cookie") {
@@ -106,6 +122,16 @@ TEST_CASE("timeout becomes transport", "[transport]") {
         FAIL("expected exception");
     } catch (const Error& error) {
         REQUIRE(error.code() == ErrorCode::transport);
+    }
+}
+
+TEST_CASE("negative timeout becomes invalid_argument", "[transport]") {
+    try {
+        CurlSession session(SessionOptions{std::chrono::milliseconds(-1)});
+        (void)session;
+        FAIL("expected exception");
+    } catch (const Error& error) {
+        REQUIRE(error.code() == ErrorCode::invalid_argument);
     }
 }
 

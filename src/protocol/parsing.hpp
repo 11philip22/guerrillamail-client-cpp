@@ -7,7 +7,6 @@
 namespace guerrillamail::protocol::parsing {
 
 nlohmann::json parse_json(std::string_view input);
-const nlohmann::json& require_member(const nlohmann::json& object, std::string_view key);
 std::string require_string_member(const nlohmann::json& object, std::string_view key);
 
 } // namespace guerrillamail::protocol::parsing

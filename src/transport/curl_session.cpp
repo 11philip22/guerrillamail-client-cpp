@@ -3,6 +3,7 @@
 #include <curl/curl.h>
 
 #include <array>
+#include <limits>
 #include <mutex>
 #include <sstream>
 #include <string>
@@ -13,6 +14,15 @@
 namespace guerrillamail::transport {
 
 namespace {
+
+void check_curl_code(CURLcode code, const char* operation) {
+    if (code != CURLE_OK) {
+        throw guerrillamail::Error(
+            guerrillamail::ErrorCode::internal,
+            std::string(operation) + " failed: " + curl_easy_strerror(code)
+        );
+    }
+}
 
 void ensure_curl_global_init() {
     static std::once_flag init_flag;
@@ -45,16 +55,43 @@ size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata) {
     return bytes;
 }
 
+long validated_timeout_ms(std::chrono::milliseconds timeout) {
+    if (timeout.count() < 0) {
+        throw guerrillamail::Error(
+            guerrillamail::ErrorCode::invalid_argument,
+            "timeout must not be negative"
+        );
+    }
+
+    if (timeout.count() > (std::numeric_limits<long>::max)()) {
+        throw guerrillamail::Error(
+            guerrillamail::ErrorCode::invalid_argument,
+            "timeout is too large for libcurl"
+        );
+    }
+
+    return static_cast<long>(timeout.count());
+}
+
 void apply_session_options(CURL* handle, const SessionOptions& options) {
-    curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, static_cast<long>(options.timeout.count()));
-    curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, options.verify_tls ? 1L : 0L);
-    curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, options.verify_tls ? 2L : 0L);
+    check_curl_code(curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 1L), "CURLOPT_NOSIGNAL");
+    check_curl_code(
+        curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, validated_timeout_ms(options.timeout)),
+        "CURLOPT_TIMEOUT_MS"
+    );
+    check_curl_code(
+        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYPEER, options.verify_tls ? 1L : 0L),
+        "CURLOPT_SSL_VERIFYPEER"
+    );
+    check_curl_code(
+        curl_easy_setopt(handle, CURLOPT_SSL_VERIFYHOST, options.verify_tls ? 2L : 0L),
+        "CURLOPT_SSL_VERIFYHOST"
+    );
 
     if (options.proxy.has_value()) {
-        curl_easy_setopt(handle, CURLOPT_PROXY, options.proxy->c_str());
+        check_curl_code(curl_easy_setopt(handle, CURLOPT_PROXY, options.proxy->c_str()), "CURLOPT_PROXY");
     } else {
-        curl_easy_setopt(handle, CURLOPT_PROXY, "");
+        check_curl_code(curl_easy_setopt(handle, CURLOPT_PROXY, ""), "CURLOPT_PROXY");
     }
 }
 
@@ -78,7 +115,7 @@ struct CurlSession::Impl {
             );
         }
 
-        curl_easy_setopt(handle, CURLOPT_COOKIEFILE, "");
+        check_curl_code(curl_easy_setopt(handle, CURLOPT_COOKIEFILE, ""), "CURLOPT_COOKIEFILE");
         apply_session_options(handle, options);
     }
 
@@ -127,33 +164,47 @@ Response CurlSession::execute(const Request& request) {
     std::string response_body;
     std::array<char, CURL_ERROR_SIZE> error_buffer{};
 
-    curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, error_buffer.data());
-    curl_easy_setopt(handle, CURLOPT_URL, request.url.c_str());
-    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &write_callback);
-    curl_easy_setopt(handle, CURLOPT_WRITEDATA, &response_body);
+    check_curl_code(curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, error_buffer.data()), "CURLOPT_ERRORBUFFER");
+    check_curl_code(curl_easy_setopt(handle, CURLOPT_URL, request.url.c_str()), "CURLOPT_URL");
+    check_curl_code(curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, &write_callback), "CURLOPT_WRITEFUNCTION");
+    check_curl_code(curl_easy_setopt(handle, CURLOPT_WRITEDATA, &response_body), "CURLOPT_WRITEDATA");
 
     curl_slist* header_list = nullptr;
     for (const auto& header : request.headers) {
         const auto combined = header.name + ": " + header.value;
-        header_list = curl_slist_append(header_list, combined.c_str());
+        auto* const next = curl_slist_append(header_list, combined.c_str());
+        if (next == nullptr) {
+            curl_slist_free_all(header_list);
+            throw guerrillamail::Error(
+                guerrillamail::ErrorCode::internal,
+                "curl_slist_append failed"
+            );
+        }
+        header_list = next;
     }
-    curl_easy_setopt(handle, CURLOPT_HTTPHEADER, header_list);
+    check_curl_code(curl_easy_setopt(handle, CURLOPT_HTTPHEADER, header_list), "CURLOPT_HTTPHEADER");
 
     switch (request.method) {
     case HttpMethod::get:
-        curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
-        curl_easy_setopt(handle, CURLOPT_POST, 0L);
-        curl_easy_setopt(handle, CURLOPT_POSTFIELDS, nullptr);
-        curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE_LARGE, static_cast<curl_off_t>(0));
+        check_curl_code(curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L), "CURLOPT_HTTPGET");
+        check_curl_code(curl_easy_setopt(handle, CURLOPT_POST, 0L), "CURLOPT_POST");
+        check_curl_code(curl_easy_setopt(handle, CURLOPT_POSTFIELDS, nullptr), "CURLOPT_POSTFIELDS");
+        check_curl_code(
+            curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE_LARGE, static_cast<curl_off_t>(0)),
+            "CURLOPT_POSTFIELDSIZE_LARGE"
+        );
         break;
     case HttpMethod::post:
-        curl_easy_setopt(handle, CURLOPT_HTTPGET, 0L);
-        curl_easy_setopt(handle, CURLOPT_POST, 1L);
-        curl_easy_setopt(handle, CURLOPT_POSTFIELDS, request.body.c_str());
-        curl_easy_setopt(
-            handle,
-            CURLOPT_POSTFIELDSIZE_LARGE,
-            static_cast<curl_off_t>(request.body.size())
+        check_curl_code(curl_easy_setopt(handle, CURLOPT_HTTPGET, 0L), "CURLOPT_HTTPGET");
+        check_curl_code(curl_easy_setopt(handle, CURLOPT_POST, 1L), "CURLOPT_POST");
+        check_curl_code(curl_easy_setopt(handle, CURLOPT_POSTFIELDS, request.body.c_str()), "CURLOPT_POSTFIELDS");
+        check_curl_code(
+            curl_easy_setopt(
+                handle,
+                CURLOPT_POSTFIELDSIZE_LARGE,
+                static_cast<curl_off_t>(request.body.size())
+            ),
+            "CURLOPT_POSTFIELDSIZE_LARGE"
         );
         break;
     }
@@ -171,7 +222,7 @@ Response CurlSession::execute(const Request& request) {
     }
 
     long status_code = 0;
-    curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &status_code);
+    check_curl_code(curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &status_code), "CURLINFO_RESPONSE_CODE");
 
     if (status_code < 200 || status_code >= 300) {
         throw guerrillamail::Error(

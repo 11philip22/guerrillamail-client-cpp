@@ -12,16 +12,6 @@ namespace {
     throw guerrillamail::Error(guerrillamail::ErrorCode::response_parse, std::move(message));
 }
 
-} // namespace
-
-nlohmann::json parse_json(std::string_view input) {
-    try {
-        return nlohmann::json::parse(input.begin(), input.end());
-    } catch (const nlohmann::json::parse_error& error) {
-        throw guerrillamail::Error(guerrillamail::ErrorCode::json_parse, error.what());
-    }
-}
-
 const nlohmann::json& require_member(const nlohmann::json& object, std::string_view key) {
     if (!object.is_object()) {
         throw_response_parse("expected JSON object");
@@ -33,6 +23,16 @@ const nlohmann::json& require_member(const nlohmann::json& object, std::string_v
     }
 
     return *iterator;
+}
+
+} // namespace
+
+nlohmann::json parse_json(std::string_view input) {
+    try {
+        return nlohmann::json::parse(input.begin(), input.end());
+    } catch (const nlohmann::json::parse_error& error) {
+        throw guerrillamail::Error(guerrillamail::ErrorCode::json_parse, error.what());
+    }
 }
 
 std::string require_string_member(const nlohmann::json& object, std::string_view key) {
