@@ -2,13 +2,18 @@ include(Catch)
 
 add_executable(guerrillamail-cpp-tests
     test_main.cpp
+    unit/error_test.cpp
+    unit/parsing_test.cpp
     unit/smoke_test.cpp
+    integration/curl_session_test.cpp
+    support/mock_http_server.cpp
     support/test_paths.cpp
 )
 
 target_include_directories(guerrillamail-cpp-tests
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${PROJECT_SOURCE_DIR}/src
 )
 
 target_link_libraries(guerrillamail-cpp-tests
@@ -16,6 +21,10 @@ target_link_libraries(guerrillamail-cpp-tests
         guerrillamail::guerrillamail-cpp
         Catch2::Catch2WithMain
 )
+
+if(WIN32)
+    target_link_libraries(guerrillamail-cpp-tests PRIVATE ws2_32)
+endif()
 
 target_compile_definitions(guerrillamail-cpp-tests
     PRIVATE

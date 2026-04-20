@@ -14,3 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Internal placeholder source layout for transport and protocol modules.
 - Catch2 smoke tests and shared test-support directories for future unit and integration coverage.
 - Basic example program linked only through the public library target.
+- Internal `CurlSession` transport wrapper with request/response types, cookie persistence, request headers, timeout, proxy, and TLS verification support.
+- Focused unit and loopback integration tests covering error classification, JSON syntax vs response-shape parsing, cookie persistence, and transport failure mapping.
+
+### Changed
+- Expanded `guerrillamail::Error` to carry optional HTTP status information for `http_status` failures.
+- Replaced transport and parsing placeholders with working internal foundations for later bootstrap and API-request implementation.
