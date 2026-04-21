@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minimal internal AJAX request helpers for Rust-aligned `check_email` probe URL and header construction.
 - Opt-in live GuerrillaMail validation coverage for bootstrap success, token extraction, AJAX header sufficiency, and cookie-backed session behavior.
 - Integration test guidance and WOL-172 notes for rerunning and interpreting live protocol validation findings.
+- Working `Client::create_email(...)` support using the bootstrapped session, shared authenticated AJAX request helpers, and response parsing for returned `email_addr` values.
+- Focused unit and integration coverage for the `set_email_user` flow, including session reuse, alias handling, request-shape checks, and malformed-response classification.
+- Optional `ClientOptions.site` override for the `create_email(...)` `site` form field when protocol compatibility requires a fixed logical site value.
 
 ### Changed
 - Expanded `guerrillamail::Error` to carry optional HTTP status information for `http_status` failures.
@@ -28,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made `Client` move-only to avoid sharing one mutable transport session across copies.
 - Derived AJAX probe `site` and origin metadata from the configured endpoint instead of hardcoding production-only request values.
 - Aligned AJAX probe URL validation with header construction so malformed endpoint URLs fail early as `invalid_argument` errors.
+- Kept `create_email(...)` default `site` behavior aligned with the configured AJAX host while allowing an explicit per-client override for compatibility cases.
+- Documented that `ClientOptions.site` currently applies only to `create_email(...)` until later AJAX flows make an explicit decision about honoring it.
 
 ### Fixed
 - Hardened internal libcurl setup and response-code handling by checking configuration and info-query return codes instead of silently ignoring failures.
@@ -37,3 +42,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added explicit POST transport coverage alongside additional transport-failure tests for connection, proxy, and TLS verification errors.
 - Made request-header cleanup exception-safe in the transport layer so header lists are released even when setup throws before request execution.
 - Corrected the documented `ctest` live-test command to match the Catch-discovered test name.
+- Rejected empty explicit `ClientOptions.site` overrides as `invalid_argument` instead of silently falling back to the derived host value.

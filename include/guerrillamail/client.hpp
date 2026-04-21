@@ -16,6 +16,9 @@ namespace guerrillamail {
 struct ClientOptions {
     std::string base_url;
     std::string ajax_url;
+    // Optional override for the `site` form field used by `create_email(...)`.
+    // Other operations continue to use their request-specific defaults until they are implemented.
+    std::optional<std::string> site;
     std::chrono::milliseconds timeout{30000};
     std::optional<std::string> proxy;
     bool verify_tls = true;

@@ -2,6 +2,7 @@
 
 #include <curl/urlapi.h>
 
+#include <optional>
 #include <cctype>
 #include <iomanip>
 #include <sstream>
@@ -147,6 +148,21 @@ std::string build_query_string(const std::vector<std::pair<std::string_view, std
     return query.str();
 }
 
+std::string resolve_site_form_value(
+    const AjaxUrlMetadata& metadata,
+    std::optional<std::string_view> site_override
+) {
+    if (site_override.has_value()) {
+        if (site_override->empty()) {
+            throw_invalid_argument("site override must not be empty");
+        }
+
+        return std::string(*site_override);
+    }
+
+    return metadata.site;
+}
+
 } // namespace
 
 std::string_view default_user_agent() noexcept {
@@ -238,6 +254,36 @@ transport::Request build_check_email_probe_request(
         build_check_email_probe_url(ajax_url, email, timestamp),
         build_ajax_headers(ajax_url, api_token, false),
         {},
+    };
+}
+
+transport::Request build_set_email_user_request(
+    std::string_view ajax_url,
+    std::string_view api_token,
+    std::string_view alias,
+    std::optional<std::string_view> site_override
+) {
+    if (ajax_url.empty()) {
+        throw_invalid_argument("ajax_url must not be empty");
+    }
+
+    const auto metadata = parse_ajax_url(ajax_url);
+    auto url = std::string(ajax_url);
+    url += (url.find('?') == std::string::npos) ? '?' : '&';
+    url += build_query_string({{"f", "set_email_user"}});
+
+    return transport::Request{
+        transport::HttpMethod::post,
+        std::move(url),
+        build_ajax_headers(ajax_url, api_token, true),
+        build_query_string({
+            {"email_user", std::string(alias)},
+            {"lang", "en"},
+            // Keep the form `site` aligned with the configured endpoint by default, but allow an
+            // explicit compatibility override without changing Host/Origin/Referer metadata.
+            {"site", resolve_site_form_value(metadata, site_override)},
+            {"in", " Set cancel"},
+        }),
     };
 }
 

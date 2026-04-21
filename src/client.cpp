@@ -4,6 +4,8 @@
 #include <utility>
 
 #include "protocol/bootstrap.hpp"
+#include "protocol/parsing.hpp"
+#include "protocol/requests.hpp"
 #include "transport/curl_session.hpp"
 
 namespace guerrillamail {
@@ -67,8 +69,23 @@ Client Client::create(const ClientOptions& options) {
     ));
 }
 
-std::string Client::create_email(std::string_view) const {
-    throw_not_implemented();
+std::string Client::create_email(std::string_view alias) const {
+    if (alias.find('@') != std::string_view::npos) {
+        throw Error(ErrorCode::invalid_argument, "alias must not contain `@`");
+    }
+
+    const auto site_override = impl_->options.site.has_value()
+                                   ? std::optional<std::string_view>(impl_->options.site.value())
+                                   : std::nullopt;
+
+    const auto response = impl_->session.execute(protocol::requests::build_set_email_user_request(
+        impl_->options.ajax_url,
+        impl_->api_token,
+        alias,
+        site_override
+    ));
+    const auto json = protocol::parsing::parse_json(response.body);
+    return protocol::parsing::require_string_member(json, "email_addr");
 }
 
 std::vector<Message> Client::get_messages(std::string_view) const {

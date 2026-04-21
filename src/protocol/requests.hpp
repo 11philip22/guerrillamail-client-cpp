@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -25,6 +26,12 @@ namespace guerrillamail::protocol::requests {
     std::string_view api_token,
     std::string_view email,
     std::string_view timestamp
+);
+[[nodiscard]] transport::Request build_set_email_user_request(
+    std::string_view ajax_url,
+    std::string_view api_token,
+    std::string_view alias,
+    std::optional<std::string_view> site_override = std::nullopt
 );
 
 } // namespace guerrillamail::protocol::requests

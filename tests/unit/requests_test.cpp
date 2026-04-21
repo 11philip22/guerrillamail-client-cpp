@@ -106,6 +106,66 @@ TEST_CASE("check_email probe request builds a GET with rust-aligned headers", "[
     REQUIRE(header_value(request.headers, "Authorization") == "ApiToken token123");
 }
 
+TEST_CASE("set_email_user request builds a POST with rust-aligned query body and headers", "[requests]") {
+    const auto request = guerrillamail::protocol::requests::build_set_email_user_request(
+        "https://mail.example.test:8443/ajax.php",
+        "token123",
+        "alias"
+    );
+
+    REQUIRE(request.method == guerrillamail::transport::HttpMethod::post);
+    REQUIRE(request.url == "https://mail.example.test:8443/ajax.php?f=set_email_user");
+    REQUIRE(
+        request.body == "email_user=alias&lang=en&site=mail.example.test&in=%20Set%20cancel"
+    );
+    REQUIRE(header_value(request.headers, "Authorization") == "ApiToken token123");
+    REQUIRE(
+        header_value(request.headers, "Content-Type") == "application/x-www-form-urlencoded; charset=UTF-8"
+    );
+}
+
+TEST_CASE("set_email_user request allows overriding only the form site value", "[requests]") {
+    const auto request = guerrillamail::protocol::requests::build_set_email_user_request(
+        "https://mail.example.test:8443/ajax.php",
+        "token123",
+        "alias",
+        std::optional<std::string_view>("guerrillamail.com")
+    );
+
+    REQUIRE(
+        request.body == "email_user=alias&lang=en&site=guerrillamail.com&in=%20Set%20cancel"
+    );
+    REQUIRE(header_value(request.headers, "Host") == "mail.example.test:8443");
+    REQUIRE(header_value(request.headers, "Origin") == "https://mail.example.test:8443");
+    REQUIRE(header_value(request.headers, "Referer") == "https://mail.example.test:8443/");
+}
+
+TEST_CASE("set_email_user request allows an empty alias intentionally", "[requests]") {
+    const auto request = guerrillamail::protocol::requests::build_set_email_user_request(
+        "https://www.guerrillamail.com/ajax.php",
+        "token123",
+        ""
+    );
+
+    REQUIRE(
+        request.body == "email_user=&lang=en&site=guerrillamail.com&in=%20Set%20cancel"
+    );
+}
+
+TEST_CASE("set_email_user request rejects an empty override", "[requests]") {
+    try {
+        (void)guerrillamail::protocol::requests::build_set_email_user_request(
+            "https://mail.example.test:8443/ajax.php",
+            "token123",
+            "alias",
+            std::optional<std::string_view>("")
+        );
+        FAIL("expected exception");
+    } catch (const guerrillamail::Error& error) {
+        REQUIRE(error.code() == guerrillamail::ErrorCode::invalid_argument);
+    }
+}
+
 TEST_CASE("invalid ajax url becomes invalid_argument", "[requests]") {
     try {
         (void)guerrillamail::protocol::requests::build_ajax_headers("not-a-url", "token123", false);
