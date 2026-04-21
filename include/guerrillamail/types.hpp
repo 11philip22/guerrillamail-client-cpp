@@ -1,6 +1,7 @@
 #pragma once
 
-#include <cstddef>
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,9 +16,11 @@ struct Message {
 };
 
 struct Attachment {
-    std::string name;
-    std::string url;
-    std::size_t size = 0;
+    // Intentionally mirrors upstream attachment metadata fields returned by fetch-email responses
+    // instead of exposing a derived download-oriented `{name, url, size}` placeholder shape.
+    std::string filename;
+    std::optional<std::string> content_type_or_hint;
+    std::string part_id;
 };
 
 struct EmailDetails {
@@ -25,7 +28,10 @@ struct EmailDetails {
     std::string mail_from;
     std::string mail_subject;
     std::string mail_body;
+    std::string mail_timestamp;
     std::vector<Attachment> attachments;
+    std::optional<std::uint32_t> attachment_count;
+    std::optional<std::string> sid_token;
 };
 
 } // namespace guerrillamail

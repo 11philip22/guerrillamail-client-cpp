@@ -35,5 +35,13 @@ namespace guerrillamail::protocol::requests {
     std::string_view alias,
     std::optional<std::string_view> site_override = std::nullopt
 );
+[[nodiscard]] transport::Request build_fetch_email_request(
+    std::string_view ajax_url,
+    std::string_view api_token,
+    std::string_view email,
+    std::string_view mail_id,
+    std::string_view timestamp,
+    std::optional<std::string_view> site_override = std::nullopt
+);
 
 } // namespace guerrillamail::protocol::requests

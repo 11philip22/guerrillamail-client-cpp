@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Aligned AJAX probe URL validation with header construction so malformed endpoint URLs fail early as `invalid_argument` errors.
 - Kept `create_email(...)` default `site` behavior aligned with the configured AJAX host while allowing an explicit per-client override for compatibility cases.
 - Expanded the current `ClientOptions.site` scope to cover both `create_email(...)` and `get_messages(...)` while leaving later operations to make explicit request-specific decisions.
+- Reshaped the public `Attachment` type to the upstream metadata-aligned `{filename, content_type_or_hint, part_id}` form without adding compatibility fields for the older `{name, url, size}` placeholder shape.
 
 ### Fixed
 - Hardened internal libcurl setup and response-code handling by checking configuration and info-query return codes instead of silently ignoring failures.

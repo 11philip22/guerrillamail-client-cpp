@@ -110,16 +110,33 @@ std::vector<Message> Client::get_messages(std::string_view email) const {
     return protocol::parsing::parse_message_list(json);
 }
 
-EmailDetails Client::fetch_email(std::string_view, std::string_view) const {
-    throw_not_implemented();
+EmailDetails Client::fetch_email(std::string_view email, std::string_view mail_id) const {
+    if (mail_id.empty()) {
+        throw Error(ErrorCode::invalid_argument, "mail_id must not be empty");
+    }
+
+    const auto site_override = impl_->options.site.has_value()
+                                   ? std::optional<std::string_view>(impl_->options.site.value())
+                                   : std::nullopt;
+
+    const auto response = impl_->session.execute(protocol::requests::build_fetch_email_request(
+        impl_->options.ajax_url,
+        impl_->api_token,
+        email,
+        mail_id,
+        make_timestamp(),
+        site_override
+    ));
+    const auto json = protocol::parsing::parse_json(response.body);
+    return protocol::parsing::parse_email_details(json);
 }
 
 void Client::delete_email(std::string_view) const {
     throw_not_implemented();
 }
 
-std::vector<Attachment> Client::list_attachments(std::string_view, std::string_view) const {
-    throw_not_implemented();
+std::vector<Attachment> Client::list_attachments(std::string_view email, std::string_view mail_id) const {
+    return fetch_email(email, mail_id).attachments;
 }
 
 std::vector<std::uint8_t> Client::fetch_attachment(

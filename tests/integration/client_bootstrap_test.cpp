@@ -493,3 +493,148 @@ TEST_CASE("client get_messages uses explicit site override without changing endp
     REQUIRE(saw_origin_header);
     REQUIRE(saw_cookie);
 }
+
+TEST_CASE("client fetch_email parses details and attachment metadata", "[bootstrap][integration]") {
+    bool saw_cookie = false;
+    bool saw_authorization = false;
+    bool saw_x_requested_with = false;
+    bool saw_empty_body = false;
+    bool saw_expected_query = false;
+
+    MockHttpServer server([&](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{
+                200,
+                {{"Set-Cookie", "sid=test123; Path=/"}},
+                "<script>api_token : 'token123'</script>"
+            };
+        }
+
+        if (request.path.find("/ajax.php?f=fetch_email") == 0) {
+            saw_cookie = request.header_value("Cookie").value_or("").find("sid=test123") != std::string::npos;
+            saw_authorization = request.header_value("Authorization").value_or("") == "ApiToken token123";
+            saw_x_requested_with = request.header_value("X-Requested-With").value_or("") == "XMLHttpRequest";
+            saw_empty_body = request.body.empty();
+            saw_expected_query = request.path.find("f=fetch_email") != std::string::npos &&
+                                 request.path.find("email_id=mail-123") != std::string::npos &&
+                                 request.path.find("site=127.0.0.1") != std::string::npos &&
+                                 request.path.find("in=myalias") != std::string::npos &&
+                                 request.path.find("_=") != std::string::npos &&
+                                 request.path.find("seq=") == std::string::npos;
+
+            return MockHttpResponse{200, {}, R"({"mail_id":"mail-123","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att":"1","sid_token":"sid123","att_info":[{"f":"file.txt","t":"text/plain","p":"99"}]})"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+    const auto details = client.fetch_email("myalias@example.com", "mail-123");
+
+    REQUIRE(details.mail_id == "mail-123");
+    REQUIRE(details.mail_from == "from@example.com");
+    REQUIRE(details.mail_subject == "subject");
+    REQUIRE(details.mail_body == "<p>body</p>");
+    REQUIRE(details.mail_timestamp == "1700000000");
+    REQUIRE(details.attachment_count == std::optional<std::uint32_t>(1));
+    REQUIRE(details.sid_token == std::optional<std::string>("sid123"));
+    REQUIRE(details.attachments.size() == 1);
+    REQUIRE(details.attachments[0].filename == "file.txt");
+    REQUIRE(details.attachments[0].content_type_or_hint == std::optional<std::string>("text/plain"));
+    REQUIRE(details.attachments[0].part_id == "99");
+    REQUIRE(saw_cookie);
+    REQUIRE(saw_authorization);
+    REQUIRE(saw_x_requested_with);
+    REQUIRE(saw_empty_body);
+    REQUIRE(saw_expected_query);
+}
+
+TEST_CASE("client list_attachments returns parsed attachment metadata", "[bootstrap][integration]") {
+    MockHttpServer server([](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {{"Set-Cookie", "sid=test123; Path=/"}}, "<script>api_token : 'token123'</script>"};
+        }
+
+        if (request.path.find("/ajax.php?f=fetch_email") == 0) {
+            return MockHttpResponse{200, {}, R"({"mail_id":"mail-123","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att_info":[{"f":"file.txt","t":"text/plain","p":"99"}]})"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+    const auto attachments = client.list_attachments("myalias@example.com", "mail-123");
+
+    REQUIRE(attachments.size() == 1);
+    REQUIRE(attachments[0].filename == "file.txt");
+    REQUIRE(attachments[0].content_type_or_hint == std::optional<std::string>("text/plain"));
+    REQUIRE(attachments[0].part_id == "99");
+}
+
+TEST_CASE("client fetch_email uses explicit site override without changing endpoint-derived headers", "[bootstrap][integration]") {
+    bool saw_override_site = false;
+    bool saw_host_header = false;
+    bool saw_origin_header = false;
+    bool saw_cookie = false;
+
+    MockHttpServer server([&](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {{"Set-Cookie", "sid=test123; Path=/"}}, "<script>api_token : 'token123'</script>"};
+        }
+
+        if (request.path.find("/ajax.php?f=fetch_email") == 0) {
+            saw_override_site = request.path.find("site=guerrillamail.com") != std::string::npos;
+            saw_host_header = request.header_value("Host").value_or("").find("127.0.0.1:") == 0;
+            saw_origin_header = request.header_value("Origin").value_or("").find("http://127.0.0.1:") == 0;
+            saw_cookie = request.header_value("Cookie").value_or("").find("sid=test123") != std::string::npos;
+            return MockHttpResponse{200, {}, R"({"mail_id":"mail-123","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000"})"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+    options.site = "guerrillamail.com";
+
+    const auto client = Client::create(options);
+    const auto details = client.fetch_email("myalias@example.com", "mail-123");
+
+    REQUIRE(details.mail_id == "mail-123");
+    REQUIRE(saw_override_site);
+    REQUIRE(saw_host_header);
+    REQUIRE(saw_origin_header);
+    REQUIRE(saw_cookie);
+}
+
+TEST_CASE("client fetch_email rejects empty mail id", "[bootstrap][integration]") {
+    MockHttpServer server([](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {}, "<script>api_token : 'token123'</script>"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+
+    try {
+        (void)client.fetch_email("myalias@example.com", "");
+        FAIL("expected exception");
+    } catch (const Error& error) {
+        REQUIRE(error.code() == ErrorCode::invalid_argument);
+    }
+}

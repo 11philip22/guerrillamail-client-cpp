@@ -139,6 +139,57 @@ TEST_CASE("check_email probe rejects an empty site override", "[requests]") {
     }
 }
 
+TEST_CASE("fetch_email request builds a GET with expected query shape", "[requests]") {
+    const auto request = guerrillamail::protocol::requests::build_fetch_email_request(
+        "https://mail.example.test:8443/ajax.php",
+        "token123",
+        "alias@example.com",
+        "mail-123",
+        "1700000000000"
+    );
+
+    REQUIRE(request.method == guerrillamail::transport::HttpMethod::get);
+    REQUIRE(request.body.empty());
+    REQUIRE(
+        request.url ==
+        "https://mail.example.test:8443/ajax.php?f=fetch_email&email_id=mail-123&site=mail.example.test&in=alias&_=1700000000000"
+    );
+    REQUIRE(header_value(request.headers, "Authorization") == "ApiToken token123");
+}
+
+TEST_CASE("fetch_email request allows overriding only the query site value", "[requests]") {
+    const auto request = guerrillamail::protocol::requests::build_fetch_email_request(
+        "https://mail.example.test:8443/ajax.php",
+        "token123",
+        "alias@example.com",
+        "mail-123",
+        "1700000000000",
+        std::optional<std::string_view>("guerrillamail.com")
+    );
+
+    REQUIRE(
+        request.url ==
+        "https://mail.example.test:8443/ajax.php?f=fetch_email&email_id=mail-123&site=guerrillamail.com&in=alias&_=1700000000000"
+    );
+    REQUIRE(header_value(request.headers, "Host") == "mail.example.test:8443");
+}
+
+TEST_CASE("fetch_email request rejects an empty site override", "[requests]") {
+    try {
+        (void)guerrillamail::protocol::requests::build_fetch_email_request(
+            "https://mail.example.test:8443/ajax.php",
+            "token123",
+            "alias@example.com",
+            "mail-123",
+            "1700000000000",
+            std::optional<std::string_view>("")
+        );
+        FAIL("expected exception");
+    } catch (const guerrillamail::Error& error) {
+        REQUIRE(error.code() == guerrillamail::ErrorCode::invalid_argument);
+    }
+}
+
 TEST_CASE("set_email_user request builds a POST with rust-aligned query body and headers", "[requests]") {
     const auto request = guerrillamail::protocol::requests::build_set_email_user_request(
         "https://mail.example.test:8443/ajax.php",

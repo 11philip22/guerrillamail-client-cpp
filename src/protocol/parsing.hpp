@@ -14,5 +14,8 @@ std::string require_string_member(const nlohmann::json& object, std::string_view
 const nlohmann::json& require_array_member(const nlohmann::json& object, std::string_view key);
 Message parse_message(const nlohmann::json& value);
 std::vector<Message> parse_message_list(const nlohmann::json& object);
+Attachment parse_attachment(const nlohmann::json& value);
+std::vector<Attachment> parse_attachment_list(const nlohmann::json& value);
+EmailDetails parse_email_details(const nlohmann::json& object);
 
 } // namespace guerrillamail::protocol::parsing

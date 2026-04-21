@@ -80,3 +80,81 @@ TEST_CASE("malformed message entry becomes response_parse", "[parsing]") {
         REQUIRE(error.code() == guerrillamail::ErrorCode::response_parse);
     }
 }
+
+TEST_CASE("email details parse without attachments", "[parsing]") {
+    const auto json = guerrillamail::protocol::parsing::parse_json(
+        R"({"mail_id":"1","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000"})"
+    );
+    const auto details = guerrillamail::protocol::parsing::parse_email_details(json);
+
+    REQUIRE(details.mail_id == "1");
+    REQUIRE(details.mail_from == "from@example.com");
+    REQUIRE(details.mail_subject == "subject");
+    REQUIRE(details.mail_body == "<p>body</p>");
+    REQUIRE(details.mail_timestamp == "1700000000");
+    REQUIRE(details.attachments.empty());
+    REQUIRE_FALSE(details.attachment_count.has_value());
+    REQUIRE_FALSE(details.sid_token.has_value());
+}
+
+TEST_CASE("email details parse attachment metadata and optional fields", "[parsing]") {
+    const auto json = guerrillamail::protocol::parsing::parse_json(
+        R"({"mail_id":"1","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att":"1","sid_token":"sid123","att_info":[{"f":"file.txt","t":"text/plain","p":"99"}]})"
+    );
+    const auto details = guerrillamail::protocol::parsing::parse_email_details(json);
+
+    REQUIRE(details.attachments.size() == 1);
+    REQUIRE(details.attachments[0].filename == "file.txt");
+    REQUIRE(details.attachments[0].content_type_or_hint == std::optional<std::string>("text/plain"));
+    REQUIRE(details.attachments[0].part_id == "99");
+    REQUIRE(details.attachment_count == std::optional<std::uint32_t>(1));
+    REQUIRE(details.sid_token == std::optional<std::string>("sid123"));
+}
+
+TEST_CASE("email details parse numeric attachment count", "[parsing]") {
+    const auto json = guerrillamail::protocol::parsing::parse_json(
+        R"({"mail_id":"1","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att":1})"
+    );
+    const auto details = guerrillamail::protocol::parsing::parse_email_details(json);
+
+    REQUIRE(details.attachment_count == std::optional<std::uint32_t>(1));
+}
+
+TEST_CASE("malformed attachment count becomes response_parse", "[parsing]") {
+    const auto json = guerrillamail::protocol::parsing::parse_json(
+        R"({"mail_id":"1","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att":"oops"})"
+    );
+
+    try {
+        (void)guerrillamail::protocol::parsing::parse_email_details(json);
+        FAIL("expected exception");
+    } catch (const guerrillamail::Error& error) {
+        REQUIRE(error.code() == guerrillamail::ErrorCode::response_parse);
+    }
+}
+
+TEST_CASE("partially numeric attachment count becomes response_parse", "[parsing]") {
+    const auto json = guerrillamail::protocol::parsing::parse_json(
+        R"({"mail_id":"1","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att":"1junk"})"
+    );
+
+    try {
+        (void)guerrillamail::protocol::parsing::parse_email_details(json);
+        FAIL("expected exception");
+    } catch (const guerrillamail::Error& error) {
+        REQUIRE(error.code() == guerrillamail::ErrorCode::response_parse);
+    }
+}
+
+TEST_CASE("malformed attachment list becomes response_parse", "[parsing]") {
+    const auto json = guerrillamail::protocol::parsing::parse_json(
+        R"({"mail_id":"1","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att_info":{}})"
+    );
+
+    try {
+        (void)guerrillamail::protocol::parsing::parse_email_details(json);
+        FAIL("expected exception");
+    } catch (const guerrillamail::Error& error) {
+        REQUIRE(error.code() == guerrillamail::ErrorCode::response_parse);
+    }
+}

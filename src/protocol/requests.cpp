@@ -244,6 +244,39 @@ std::string build_check_email_probe_url(
     return url;
 }
 
+std::string build_fetch_email_url(
+    std::string_view ajax_url,
+    std::string_view email,
+    std::string_view mail_id,
+    std::string_view timestamp,
+    std::optional<std::string_view> site_override
+) {
+    if (ajax_url.empty()) {
+        throw_invalid_argument("ajax_url must not be empty");
+    }
+    if (mail_id.empty()) {
+        throw_invalid_argument("mail_id must not be empty");
+    }
+    if (timestamp.empty()) {
+        throw_invalid_argument("timestamp must not be empty");
+    }
+
+    const auto metadata = parse_ajax_url(ajax_url);
+    const auto alias = extract_alias(email);
+    const auto query = build_query_string({
+        {"f", "fetch_email"},
+        {"email_id", std::string(mail_id)},
+        {"site", resolve_site_form_value(metadata, site_override)},
+        {"in", alias},
+        {"_", std::string(timestamp)},
+    });
+
+    auto url = std::string(ajax_url);
+    url += (url.find('?') == std::string::npos) ? '?' : '&';
+    url += query;
+    return url;
+}
+
 transport::Request build_check_email_probe_request(
     std::string_view ajax_url,
     std::string_view api_token,
@@ -286,6 +319,22 @@ transport::Request build_set_email_user_request(
             {"site", resolve_site_form_value(metadata, site_override)},
             {"in", " Set cancel"},
         }),
+    };
+}
+
+transport::Request build_fetch_email_request(
+    std::string_view ajax_url,
+    std::string_view api_token,
+    std::string_view email,
+    std::string_view mail_id,
+    std::string_view timestamp,
+    std::optional<std::string_view> site_override
+) {
+    return transport::Request{
+        transport::HttpMethod::get,
+        build_fetch_email_url(ajax_url, email, mail_id, timestamp, site_override),
+        build_ajax_headers(ajax_url, api_token, false),
+        {},
     };
 }
 
