@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Mock-server attachment download coverage for binary payloads, missing `part_id`, conditional `sid_token`, and non-2xx download failures.
 - A public-only end-to-end mock test target that exercises the first-version API using only public headers and the public CMake target.
 - A real happy-path example program showing bootstrap, create, list, fetch, optional attachment download, and cleanup through the public API.
+- An opt-in live end-to-end GuerrillaMail sanity test covering bootstrap, create, list, and delete against the real service.
 
 ### Changed
 - Expanded `guerrillamail::Error` to carry optional HTTP status information for `http_status` failures.

@@ -8,6 +8,7 @@ add_executable(guerrillamail-cpp-tests
     unit/requests_test.cpp
     integration/client_bootstrap_test.cpp
     integration/live_protocol_validation_test.cpp
+    integration/live_end_to_end_test.cpp
     unit/smoke_test.cpp
     integration/curl_session_test.cpp
     support/mock_http_server.cpp
