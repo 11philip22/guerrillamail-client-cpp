@@ -190,6 +190,48 @@ TEST_CASE("fetch_email request rejects an empty site override", "[requests]") {
     }
 }
 
+TEST_CASE("forget_me request builds a POST with expected query shape", "[requests]") {
+    const auto request = guerrillamail::protocol::requests::build_forget_me_request(
+        "https://mail.example.test:8443/ajax.php",
+        "token123",
+        "alias@example.com"
+    );
+
+    REQUIRE(request.method == guerrillamail::transport::HttpMethod::post);
+    REQUIRE(request.url == "https://mail.example.test:8443/ajax.php?f=forget_me");
+    REQUIRE(request.body == "site=mail.example.test&in=alias");
+    REQUIRE(header_value(request.headers, "Authorization") == "ApiToken token123");
+    REQUIRE(
+        header_value(request.headers, "Content-Type") == "application/x-www-form-urlencoded; charset=UTF-8"
+    );
+}
+
+TEST_CASE("forget_me request allows overriding only the form site value", "[requests]") {
+    const auto request = guerrillamail::protocol::requests::build_forget_me_request(
+        "https://mail.example.test:8443/ajax.php",
+        "token123",
+        "alias@example.com",
+        std::optional<std::string_view>("guerrillamail.com")
+    );
+
+    REQUIRE(request.body == "site=guerrillamail.com&in=alias");
+    REQUIRE(header_value(request.headers, "Host") == "mail.example.test:8443");
+}
+
+TEST_CASE("forget_me request rejects an empty site override", "[requests]") {
+    try {
+        (void)guerrillamail::protocol::requests::build_forget_me_request(
+            "https://mail.example.test:8443/ajax.php",
+            "token123",
+            "alias@example.com",
+            std::optional<std::string_view>("")
+        );
+        FAIL("expected exception");
+    } catch (const guerrillamail::Error& error) {
+        REQUIRE(error.code() == guerrillamail::ErrorCode::invalid_argument);
+    }
+}
+
 TEST_CASE("set_email_user request builds a POST with rust-aligned query body and headers", "[requests]") {
     const auto request = guerrillamail::protocol::requests::build_set_email_user_request(
         "https://mail.example.test:8443/ajax.php",

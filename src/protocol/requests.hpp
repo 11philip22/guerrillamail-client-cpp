@@ -43,5 +43,11 @@ namespace guerrillamail::protocol::requests {
     std::string_view timestamp,
     std::optional<std::string_view> site_override = std::nullopt
 );
+[[nodiscard]] transport::Request build_forget_me_request(
+    std::string_view ajax_url,
+    std::string_view api_token,
+    std::string_view email,
+    std::optional<std::string_view> site_override = std::nullopt
+);
 
 } // namespace guerrillamail::protocol::requests

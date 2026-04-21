@@ -338,4 +338,31 @@ transport::Request build_fetch_email_request(
     };
 }
 
+transport::Request build_forget_me_request(
+    std::string_view ajax_url,
+    std::string_view api_token,
+    std::string_view email,
+    std::optional<std::string_view> site_override
+) {
+    if (ajax_url.empty()) {
+        throw_invalid_argument("ajax_url must not be empty");
+    }
+
+    const auto metadata = parse_ajax_url(ajax_url);
+    const auto alias = extract_alias(email);
+    auto url = std::string(ajax_url);
+    url += (url.find('?') == std::string::npos) ? '?' : '&';
+    url += build_query_string({{"f", "forget_me"}});
+
+    return transport::Request{
+        transport::HttpMethod::post,
+        std::move(url),
+        build_ajax_headers(ajax_url, api_token, true),
+        build_query_string({
+            {"site", resolve_site_form_value(metadata, site_override)},
+            {"in", alias},
+        }),
+    };
+}
+
 } // namespace guerrillamail::protocol::requests

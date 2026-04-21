@@ -34,7 +34,7 @@ public:
     std::string create_email(std::string_view alias = {}) const;
     std::vector<Message> get_messages(std::string_view email) const;
     EmailDetails fetch_email(std::string_view email, std::string_view mail_id) const;
-    void delete_email(std::string_view email) const;
+    bool delete_email(std::string_view email) const;
     std::vector<Attachment> list_attachments(std::string_view email, std::string_view mail_id) const;
     std::vector<std::uint8_t> fetch_attachment(
         std::string_view email,

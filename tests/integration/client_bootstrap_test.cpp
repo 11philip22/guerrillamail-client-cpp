@@ -19,6 +19,51 @@ using guerrillamail::transport::CurlSession;
 using guerrillamail::transport::HttpMethod;
 using guerrillamail::transport::Request;
 
+namespace {
+
+std::string host_with_port_from_url(std::string_view url) {
+    const auto scheme_end = url.find("://");
+    const auto host_start = scheme_end == std::string_view::npos ? 0 : scheme_end + 3;
+    const auto path_start = url.find('/', host_start);
+    return std::string(url.substr(host_start, path_start - host_start));
+}
+
+std::string origin_from_url(std::string_view url) {
+    const auto scheme_end = url.find("://");
+    const auto path_start = url.find('/', scheme_end == std::string_view::npos ? 0 : scheme_end + 3);
+    if (path_start == std::string_view::npos) {
+        return std::string(url);
+    }
+
+    return std::string(url.substr(0, path_start));
+}
+
+std::string site_from_url(std::string_view url) {
+    const auto host_with_port = host_with_port_from_url(url);
+
+    std::string host = host_with_port;
+    if (!host.empty() && host.front() == '[') {
+        const auto closing = host.find(']');
+        if (closing != std::string::npos) {
+            host = host.substr(1, closing - 1);
+        }
+    } else {
+        const auto separator = host.find(':');
+        if (separator != std::string::npos) {
+            host = host.substr(0, separator);
+        }
+    }
+
+    constexpr std::string_view kCommonWwwPrefix = "www.";
+    if (host.starts_with(kCommonWwwPrefix) && host.size() > kCommonWwwPrefix.size()) {
+        host.erase(0, kCommonWwwPrefix.size());
+    }
+
+    return host;
+}
+
+} // namespace
+
 TEST_CASE("client create bootstraps successfully against mock server", "[bootstrap][integration]") {
     bool saw_user_agent = false;
     bool saw_accept_language = false;
@@ -636,5 +681,141 @@ TEST_CASE("client fetch_email rejects empty mail id", "[bootstrap][integration]"
         FAIL("expected exception");
     } catch (const Error& error) {
         REQUIRE(error.code() == ErrorCode::invalid_argument);
+    }
+}
+
+TEST_CASE("client delete_email best-effort session cleanup reuses bootstrap session", "[bootstrap][integration]") {
+    bool saw_cookie = false;
+    bool saw_authorization = false;
+    bool saw_x_requested_with = false;
+    bool saw_post_method = false;
+    bool saw_expected_query = false;
+    std::string observed_body;
+
+    MockHttpServer server([&](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{
+                200,
+                {{"Set-Cookie", "sid=test123; Path=/"}},
+                "<script>api_token : 'token123'</script>"
+            };
+        }
+
+        if (request.path.find("/ajax.php?f=forget_me") == 0) {
+            saw_post_method = request.method == "POST";
+            saw_expected_query = request.path == "/ajax.php?f=forget_me";
+            saw_cookie = request.header_value("Cookie").value_or("").find("sid=test123") != std::string::npos;
+            saw_authorization = request.header_value("Authorization").value_or("") == "ApiToken token123";
+            saw_x_requested_with = request.header_value("X-Requested-With").value_or("") == "XMLHttpRequest";
+            observed_body = request.body;
+            return MockHttpResponse{204, {}, ""};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto expected_site = site_from_url(options.ajax_url);
+
+    const auto client = Client::create(options);
+
+    REQUIRE(client.delete_email("myalias@example.com"));
+    REQUIRE(saw_post_method);
+    REQUIRE(saw_expected_query);
+    REQUIRE(saw_cookie);
+    REQUIRE(saw_authorization);
+    REQUIRE(saw_x_requested_with);
+    REQUIRE(observed_body == "site=" + expected_site + "&in=myalias");
+}
+
+TEST_CASE("client delete_email uses explicit site override without changing endpoint-derived headers", "[bootstrap][integration]") {
+    bool saw_cookie = false;
+    std::string observed_body;
+    std::string observed_host;
+    std::string observed_origin;
+
+    MockHttpServer server([&](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {{"Set-Cookie", "sid=test123; Path=/"}}, "<script>api_token : 'token123'</script>"};
+        }
+
+        if (request.path.find("/ajax.php?f=forget_me") == 0) {
+            observed_body = request.body;
+            observed_host = request.header_value("Host").value_or("");
+            observed_origin = request.header_value("Origin").value_or("");
+            saw_cookie = request.header_value("Cookie").value_or("").find("sid=test123") != std::string::npos;
+            return MockHttpResponse{200, {}, "ok"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+    options.site = "guerrillamail.com";
+
+    const auto expected_host = host_with_port_from_url(options.ajax_url);
+    const auto expected_origin = origin_from_url(options.ajax_url);
+
+    const auto client = Client::create(options);
+    REQUIRE(client.delete_email("myalias@example.com"));
+    REQUIRE(observed_body == "site=guerrillamail.com&in=myalias");
+    REQUIRE(observed_host == expected_host);
+    REQUIRE(observed_origin == expected_origin);
+    REQUIRE(saw_cookie);
+}
+
+TEST_CASE("client delete_email rejects empty alias input", "[bootstrap][integration]") {
+    MockHttpServer server([](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {}, "<script>api_token : 'token123'</script>"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+
+    try {
+        client.delete_email("@example.com");
+        FAIL("expected exception");
+    } catch (const Error& error) {
+        REQUIRE(error.code() == ErrorCode::invalid_argument);
+    }
+}
+
+TEST_CASE("client delete_email maps non-2xx to http_status", "[bootstrap][integration]") {
+    MockHttpServer server([](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {}, "<script>api_token : 'token123'</script>"};
+        }
+
+        if (request.path.find("/ajax.php?f=forget_me") == 0) {
+            return MockHttpResponse{503, {}, "down"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+
+    try {
+        client.delete_email("myalias@example.com");
+        FAIL("expected exception");
+    } catch (const Error& error) {
+        REQUIRE(error.code() == ErrorCode::http_status);
+        REQUIRE(error.http_status() == std::optional<long>(503));
     }
 }

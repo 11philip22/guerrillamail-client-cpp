@@ -131,8 +131,19 @@ EmailDetails Client::fetch_email(std::string_view email, std::string_view mail_i
     return protocol::parsing::parse_email_details(json);
 }
 
-void Client::delete_email(std::string_view) const {
-    throw_not_implemented();
+bool Client::delete_email(std::string_view email) const {
+    const auto site_override = impl_->options.site.has_value()
+                                   ? std::optional<std::string_view>(impl_->options.site.value())
+                                   : std::nullopt;
+
+    (void)impl_->session.execute(protocol::requests::build_forget_me_request(
+        impl_->options.ajax_url,
+        impl_->api_token,
+        email,
+        site_override
+    ));
+
+    return true;
 }
 
 std::vector<Attachment> Client::list_attachments(std::string_view email, std::string_view mail_id) const {
