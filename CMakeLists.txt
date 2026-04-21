@@ -6,8 +6,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(GUERRILLAMAIL_CPP_BUILD_TESTS "Build guerrillamail-cpp tests" ON)
-option(GUERRILLAMAIL_CPP_BUILD_EXAMPLES "Build guerrillamail-cpp examples" ON)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(_GUERRILLAMAIL_CPP_STANDALONE ON)
+else()
+    set(_GUERRILLAMAIL_CPP_STANDALONE OFF)
+endif()
+
+option(GUERRILLAMAIL_CPP_BUILD_TESTS    "Build guerrillamail-cpp tests"    ${_GUERRILLAMAIL_CPP_STANDALONE})
+option(GUERRILLAMAIL_CPP_BUILD_EXAMPLES "Build guerrillamail-cpp examples" ${_GUERRILLAMAIL_CPP_STANDALONE})
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     message(STATUS "CMAKE_TOOLCHAIN_FILE is not set. Expected vcpkg toolchain: third_party/vcpkg/scripts/buildsystems/vcpkg.cmake")
@@ -18,7 +24,7 @@ endif()
 find_package(CURL REQUIRED)
 find_package(nlohmann_json REQUIRED)
 
-add_library(guerrillamail-cpp
+add_library(guerrillamail-cpp STATIC
     src/client.cpp
     src/error.cpp
     src/transport/curl_session.cpp
