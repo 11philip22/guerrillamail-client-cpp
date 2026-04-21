@@ -23,3 +23,14 @@ What the live test validates:
 - the local Windows `libcurl` runtime can complete a real HTTPS request in practice
 
 The current findings for `WOL-172` live in `docs/WOL-172-live-validation.md`.
+
+## Attachment Flow Notes
+
+- Attachment download uses the `/inbox` endpoint, not `ajax.php`.
+- The download query intentionally omits `site`; `ClientOptions.site` does not affect attachment downloads.
+- `sid_token` is included only when present and non-empty on the fetched email details.
+- Live attachment validation remains a manual check because it depends on having a real message with an attachment available during the test run.
+
+## Public End-To-End Test
+
+`public_api_end_to_end_test.cpp` is a mock-server happy-path test that uses only public library headers and the public CMake target while exercising the first-version public API end to end.

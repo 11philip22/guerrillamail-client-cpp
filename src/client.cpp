@@ -151,11 +151,31 @@ std::vector<Attachment> Client::list_attachments(std::string_view email, std::st
 }
 
 std::vector<std::uint8_t> Client::fetch_attachment(
-    std::string_view,
-    std::string_view,
-    const Attachment&
+    std::string_view email,
+    std::string_view mail_id,
+    const Attachment& attachment
 ) const {
-    throw_not_implemented();
+    if (mail_id.empty()) {
+        throw Error(ErrorCode::invalid_argument, "mail_id must not be empty");
+    }
+    if (attachment.part_id.empty()) {
+        throw Error(ErrorCode::invalid_argument, "attachment missing part_id");
+    }
+
+    const auto details = fetch_email(email, mail_id);
+    const auto sid_token = details.sid_token.has_value() && !details.sid_token->empty()
+                               ? std::optional<std::string_view>(details.sid_token.value())
+                               : std::nullopt;
+
+    const auto response = impl_->session.execute(protocol::requests::build_fetch_attachment_request(
+        impl_->options.base_url,
+        impl_->api_token,
+        mail_id,
+        attachment.part_id,
+        sid_token
+    ));
+
+    return std::vector<std::uint8_t>(response.body.begin(), response.body.end());
 }
 
 } // namespace guerrillamail

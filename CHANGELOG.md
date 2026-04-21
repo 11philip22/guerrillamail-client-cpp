@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Working `Client::fetch_email(...)` and `Client::list_attachments(...)` support using the bootstrapped session, shared authenticated AJAX GET request helpers, and Rust-aligned parsing of full message details and attachment metadata.
 - Attachment/detail parsing coverage for optional `sid_token`, attachment-count string-or-number handling, malformed attachment metadata, and fetch-email request shape.
 - Working `Client::delete_email(...)` support using the current session's authenticated `forget_me` flow, along with request-shape and failure-classification coverage.
+- Working `Client::fetch_attachment(...)` support using the `/inbox` download flow, conditional `sid_token` handling, and binary-safe byte return semantics.
+- Mock-server attachment download coverage for binary payloads, missing `part_id`, conditional `sid_token`, and non-2xx download failures.
+- A public-only end-to-end mock test target that exercises the first-version API using only public headers and the public CMake target.
+- A real happy-path example program showing bootstrap, create, list, fetch, optional attachment download, and cleanup through the public API.
 
 ### Changed
 - Expanded `guerrillamail::Error` to carry optional HTTP status information for `http_status` failures.
@@ -51,3 +55,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Made request-header cleanup exception-safe in the transport layer so header lists are released even when setup throws before request execution.
 - Corrected the documented `ctest` live-test command to match the Catch-discovered test name.
 - Rejected empty explicit `ClientOptions.site` overrides as `invalid_argument` instead of silently falling back to the derived host value.
+- Classified missing `Attachment::part_id` in `fetch_attachment(...)` as `invalid_argument` so caller-constructed invalid attachment inputs are reported as input errors rather than response-parse failures.

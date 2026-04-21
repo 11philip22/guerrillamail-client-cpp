@@ -148,6 +148,14 @@ std::string build_query_string(const std::vector<std::pair<std::string_view, std
     return query.str();
 }
 
+std::string trim_trailing_slash(std::string value) {
+    while (!value.empty() && value.back() == '/') {
+        value.pop_back();
+    }
+
+    return value;
+}
+
 std::string resolve_site_form_value(
     const AjaxUrlMetadata& metadata,
     std::optional<std::string_view> site_override
@@ -362,6 +370,48 @@ transport::Request build_forget_me_request(
             {"site", resolve_site_form_value(metadata, site_override)},
             {"in", alias},
         }),
+    };
+}
+
+transport::Request build_fetch_attachment_request(
+    std::string_view base_url,
+    std::string_view api_token,
+    std::string_view mail_id,
+    std::string_view part_id,
+    std::optional<std::string_view> sid_token
+) {
+    if (base_url.empty()) {
+        throw_invalid_argument("base_url must not be empty");
+    }
+    if (mail_id.empty()) {
+        throw_invalid_argument("mail_id must not be empty");
+    }
+    if (part_id.empty()) {
+        throw_invalid_argument("part_id must not be empty");
+    }
+
+    auto inbox_url = trim_trailing_slash(std::string(base_url));
+    inbox_url += "/inbox";
+    inbox_url += '?';
+
+    std::vector<std::pair<std::string_view, std::string>> query = {
+        {"get_att", ""},
+        {"lang", "en"},
+        {"email_id", std::string(mail_id)},
+        {"part_id", std::string(part_id)},
+    };
+
+    if (sid_token.has_value() && !sid_token->empty()) {
+        query.emplace_back("sid_token", std::string(*sid_token));
+    }
+
+    inbox_url += build_query_string(query);
+
+    return transport::Request{
+        transport::HttpMethod::get,
+        std::move(inbox_url),
+        build_ajax_headers(base_url, api_token, true),
+        {},
     };
 }
 

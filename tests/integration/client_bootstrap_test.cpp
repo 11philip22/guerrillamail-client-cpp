@@ -10,6 +10,7 @@
 
 using guerrillamail::Client;
 using guerrillamail::ClientOptions;
+using guerrillamail::Attachment;
 using guerrillamail::Error;
 using guerrillamail::ErrorCode;
 using guerrillamail::tests::support::MockHttpRequest;
@@ -813,6 +814,139 @@ TEST_CASE("client delete_email maps non-2xx to http_status", "[bootstrap][integr
 
     try {
         client.delete_email("myalias@example.com");
+        FAIL("expected exception");
+    } catch (const Error& error) {
+        REQUIRE(error.code() == ErrorCode::http_status);
+        REQUIRE(error.http_status() == std::optional<long>(503));
+    }
+}
+
+TEST_CASE("client fetch_attachment downloads binary body with sid_token when present", "[bootstrap][integration]") {
+    bool saw_fetch_email = false;
+    bool saw_download_query = false;
+    bool saw_cookie = false;
+
+    MockHttpServer server([&](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {{"Set-Cookie", "sid=test123; Path=/"}}, "<script>api_token : 'token123'</script>"};
+        }
+
+        if (request.path.find("/ajax.php?f=fetch_email") == 0) {
+            saw_fetch_email = true;
+            return MockHttpResponse{200, {}, R"({"mail_id":"mail-123","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","sid_token":"sid123","att_info":[{"f":"file.bin","t":"application/octet-stream","p":"99"}]})"};
+        }
+
+        if (request.path.find("/inbox?") == 0) {
+            saw_cookie = request.header_value("Cookie").value_or("").find("sid=test123") != std::string::npos;
+            saw_download_query = request.path.find("get_att=") != std::string::npos &&
+                                 request.path.find("lang=en") != std::string::npos &&
+                                 request.path.find("email_id=mail-123") != std::string::npos &&
+                                 request.path.find("part_id=99") != std::string::npos &&
+                                 request.path.find("sid_token=sid123") != std::string::npos &&
+                                 request.path.find("site=") == std::string::npos;
+
+            return MockHttpResponse{200, {}, std::string("A\0B", 3)};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+    const auto attachment = Attachment{"file.bin", std::optional<std::string>("application/octet-stream"), "99"};
+    const auto bytes = client.fetch_attachment("myalias@example.com", "mail-123", attachment);
+
+    REQUIRE(saw_fetch_email);
+    REQUIRE(saw_download_query);
+    REQUIRE(saw_cookie);
+    REQUIRE(bytes == std::vector<std::uint8_t>{'A', 0, 'B'});
+}
+
+TEST_CASE("client fetch_attachment omits sid_token when absent", "[bootstrap][integration]" ) {
+    bool saw_download_query = false;
+
+    MockHttpServer server([&](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {}, "<script>api_token : 'token123'</script>"};
+        }
+
+        if (request.path.find("/ajax.php?f=fetch_email") == 0) {
+            return MockHttpResponse{200, {}, R"({"mail_id":"mail-123","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att_info":[{"f":"file.bin","p":"99"}]})"};
+        }
+
+        if (request.path.find("/inbox?") == 0) {
+            saw_download_query = request.path.find("sid_token=") == std::string::npos;
+            return MockHttpResponse{200, {}, "hello"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+    const auto attachment = Attachment{"file.bin", std::nullopt, "99"};
+    const auto bytes = client.fetch_attachment("myalias@example.com", "mail-123", attachment);
+
+    REQUIRE(saw_download_query);
+    REQUIRE(bytes == std::vector<std::uint8_t>{'h', 'e', 'l', 'l', 'o'});
+}
+
+TEST_CASE("client fetch_attachment rejects missing part id as invalid_argument", "[bootstrap][integration]") {
+    MockHttpServer server([](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {}, "<script>api_token : 'token123'</script>"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+    const auto attachment = Attachment{"file.bin", std::nullopt, ""};
+
+    try {
+        (void)client.fetch_attachment("myalias@example.com", "mail-123", attachment);
+        FAIL("expected exception");
+    } catch (const Error& error) {
+        REQUIRE(error.code() == ErrorCode::invalid_argument);
+    }
+}
+
+TEST_CASE("client fetch_attachment maps non-2xx download to http_status", "[bootstrap][integration]") {
+    MockHttpServer server([](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {}, "<script>api_token : 'token123'</script>"};
+        }
+
+        if (request.path.find("/ajax.php?f=fetch_email") == 0) {
+            return MockHttpResponse{200, {}, R"({"mail_id":"mail-123","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att_info":[{"f":"file.bin","p":"99"}]})"};
+        }
+
+        if (request.path.find("/inbox?") == 0) {
+            return MockHttpResponse{503, {}, "down"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+    const auto attachment = Attachment{"file.bin", std::nullopt, "99"};
+
+    try {
+        (void)client.fetch_attachment("myalias@example.com", "mail-123", attachment);
         FAIL("expected exception");
     } catch (const Error& error) {
         REQUIRE(error.code() == ErrorCode::http_status);
