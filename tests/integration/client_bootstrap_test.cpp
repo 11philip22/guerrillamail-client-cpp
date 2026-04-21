@@ -349,3 +349,147 @@ TEST_CASE("client create_email maps non-string email_addr to response_parse", "[
         REQUIRE(error.code() == ErrorCode::response_parse);
     }
 }
+
+TEST_CASE("client get_messages reuses bootstrap session and extracts alias from full email", "[bootstrap][integration]") {
+    bool saw_cookie = false;
+    bool saw_authorization = false;
+    bool saw_x_requested_with = false;
+    bool saw_empty_body = false;
+    bool saw_expected_query = false;
+
+    MockHttpServer server([&](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{
+                200,
+                {{"Set-Cookie", "sid=test123; Path=/"}},
+                "<script>api_token : 'token123'</script>"
+            };
+        }
+
+        if (request.path.find("/ajax.php?f=check_email") == 0) {
+            saw_cookie = request.header_value("Cookie").value_or("").find("sid=test123") != std::string::npos;
+            saw_authorization = request.header_value("Authorization").value_or("") == "ApiToken token123";
+            saw_x_requested_with = request.header_value("X-Requested-With").value_or("") == "XMLHttpRequest";
+            saw_empty_body = request.body.empty();
+            saw_expected_query = request.path.find("f=check_email") != std::string::npos &&
+                                 request.path.find("seq=1") != std::string::npos &&
+                                 request.path.find("site=127.0.0.1") != std::string::npos &&
+                                 request.path.find("in=myalias") != std::string::npos &&
+                                 request.path.find("_=") != std::string::npos;
+
+            return MockHttpResponse{200, {}, R"({"list":[{"mail_id":"1","mail_from":"from@example.com","mail_subject":"subject","mail_excerpt":"excerpt","mail_timestamp":"1700000000"}]})"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+    const auto messages = client.get_messages("myalias@example.com");
+
+    REQUIRE(messages.size() == 1);
+    REQUIRE(messages[0].mail_id == "1");
+    REQUIRE(messages[0].mail_from == "from@example.com");
+    REQUIRE(messages[0].mail_subject == "subject");
+    REQUIRE(messages[0].mail_excerpt == "excerpt");
+    REQUIRE(messages[0].mail_timestamp == "1700000000");
+    REQUIRE(saw_cookie);
+    REQUIRE(saw_authorization);
+    REQUIRE(saw_x_requested_with);
+    REQUIRE(saw_empty_body);
+    REQUIRE(saw_expected_query);
+}
+
+TEST_CASE("client get_messages rejects empty alias input", "[bootstrap][integration]") {
+    MockHttpServer server([](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {}, "<script>api_token : 'token123'</script>"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+
+    try {
+        (void)client.get_messages("@example.com");
+        FAIL("expected exception");
+    } catch (const Error& error) {
+        REQUIRE(error.code() == ErrorCode::invalid_argument);
+    }
+}
+
+TEST_CASE("client get_messages maps missing list to response_parse", "[bootstrap][integration]") {
+    MockHttpServer server([](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{200, {}, "<script>api_token : 'token123'</script>"};
+        }
+
+        if (request.path.find("/ajax.php?f=check_email") == 0) {
+            return MockHttpResponse{200, {}, R"({"ok":true})"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+
+    const auto client = Client::create(options);
+
+    try {
+        (void)client.get_messages("myalias@example.com");
+        FAIL("expected exception");
+    } catch (const Error& error) {
+        REQUIRE(error.code() == ErrorCode::response_parse);
+    }
+}
+
+TEST_CASE("client get_messages uses explicit site override without changing endpoint-derived headers", "[bootstrap][integration]") {
+    bool saw_override_site = false;
+    bool saw_host_header = false;
+    bool saw_origin_header = false;
+    bool saw_cookie = false;
+
+    MockHttpServer server([&](const MockHttpRequest& request) {
+        if (request.path == "/") {
+            return MockHttpResponse{
+                200,
+                {{"Set-Cookie", "sid=test123; Path=/"}},
+                "<script>api_token : 'token123'</script>"
+            };
+        }
+
+        if (request.path.find("/ajax.php?f=check_email") == 0) {
+            saw_override_site = request.path.find("site=guerrillamail.com") != std::string::npos;
+            saw_host_header = request.header_value("Host").value_or("").find("127.0.0.1:") == 0;
+            saw_origin_header = request.header_value("Origin").value_or("").find("http://127.0.0.1:") == 0;
+            saw_cookie = request.header_value("Cookie").value_or("").find("sid=test123") != std::string::npos;
+            return MockHttpResponse{200, {}, R"({"list":[{"mail_id":"1","mail_from":"from@example.com","mail_subject":"subject","mail_excerpt":"excerpt","mail_timestamp":"1700000000"}]})"};
+        }
+
+        return MockHttpResponse{400, {}, "unexpected"};
+    });
+
+    ClientOptions options;
+    options.base_url = server.url("/");
+    options.ajax_url = server.url("/ajax.php");
+    options.site = "guerrillamail.com";
+
+    const auto client = Client::create(options);
+    const auto messages = client.get_messages("myalias@example.com");
+
+    REQUIRE(messages.size() == 1);
+    REQUIRE(saw_override_site);
+    REQUIRE(saw_host_header);
+    REQUIRE(saw_origin_header);
+    REQUIRE(saw_cookie);
+}

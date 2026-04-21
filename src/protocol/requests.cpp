@@ -218,7 +218,8 @@ std::vector<transport::Header> build_ajax_headers(
 std::string build_check_email_probe_url(
     std::string_view ajax_url,
     std::string_view email,
-    std::string_view timestamp
+    std::string_view timestamp,
+    std::optional<std::string_view> site_override
 ) {
     if (ajax_url.empty()) {
         throw_invalid_argument("ajax_url must not be empty");
@@ -232,7 +233,7 @@ std::string build_check_email_probe_url(
     const auto query = build_query_string({
         {"f", "check_email"},
         {"seq", "1"},
-        {"site", metadata.site},
+        {"site", resolve_site_form_value(metadata, site_override)},
         {"in", alias},
         {"_", std::string(timestamp)},
     });
@@ -247,11 +248,12 @@ transport::Request build_check_email_probe_request(
     std::string_view ajax_url,
     std::string_view api_token,
     std::string_view email,
-    std::string_view timestamp
+    std::string_view timestamp,
+    std::optional<std::string_view> site_override
 ) {
     return transport::Request{
         transport::HttpMethod::get,
-        build_check_email_probe_url(ajax_url, email, timestamp),
+        build_check_email_probe_url(ajax_url, email, timestamp, site_override),
         build_ajax_headers(ajax_url, api_token, false),
         {},
     };

@@ -19,13 +19,15 @@ namespace guerrillamail::protocol::requests {
 [[nodiscard]] std::string build_check_email_probe_url(
     std::string_view ajax_url,
     std::string_view email,
-    std::string_view timestamp
+    std::string_view timestamp,
+    std::optional<std::string_view> site_override = std::nullopt
 );
 [[nodiscard]] transport::Request build_check_email_probe_request(
     std::string_view ajax_url,
     std::string_view api_token,
     std::string_view email,
-    std::string_view timestamp
+    std::string_view timestamp,
+    std::optional<std::string_view> site_override = std::nullopt
 );
 [[nodiscard]] transport::Request build_set_email_user_request(
     std::string_view ajax_url,

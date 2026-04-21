@@ -1,5 +1,6 @@
 #include "guerrillamail/client.hpp"
 
+#include <chrono>
 #include <string>
 #include <utility>
 
@@ -14,6 +15,11 @@ namespace {
 
 constexpr const char* kDefaultBaseUrl = "https://www.guerrillamail.com";
 constexpr const char* kDefaultAjaxPath = "/ajax.php";
+
+std::string make_timestamp() {
+    const auto now = std::chrono::system_clock::now().time_since_epoch();
+    return std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
+}
 
 [[noreturn]] void throw_not_implemented() {
     throw Error(ErrorCode::internal, "not implemented");
@@ -88,8 +94,20 @@ std::string Client::create_email(std::string_view alias) const {
     return protocol::parsing::require_string_member(json, "email_addr");
 }
 
-std::vector<Message> Client::get_messages(std::string_view) const {
-    throw_not_implemented();
+std::vector<Message> Client::get_messages(std::string_view email) const {
+    const auto site_override = impl_->options.site.has_value()
+                                   ? std::optional<std::string_view>(impl_->options.site.value())
+                                   : std::nullopt;
+
+    const auto response = impl_->session.execute(protocol::requests::build_check_email_probe_request(
+        impl_->options.ajax_url,
+        impl_->api_token,
+        email,
+        make_timestamp(),
+        site_override
+    ));
+    const auto json = protocol::parsing::parse_json(response.body);
+    return protocol::parsing::parse_message_list(json);
 }
 
 EmailDetails Client::fetch_email(std::string_view, std::string_view) const {

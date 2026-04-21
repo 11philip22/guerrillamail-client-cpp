@@ -10,6 +10,8 @@ struct Message {
     std::string mail_id;
     std::string mail_from;
     std::string mail_subject;
+    std::string mail_excerpt;
+    std::string mail_timestamp;
 };
 
 struct Attachment {

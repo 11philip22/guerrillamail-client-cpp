@@ -106,6 +106,39 @@ TEST_CASE("check_email probe request builds a GET with rust-aligned headers", "[
     REQUIRE(header_value(request.headers, "Authorization") == "ApiToken token123");
 }
 
+TEST_CASE("check_email probe allows overriding only the query site value", "[requests]") {
+    const auto request = guerrillamail::protocol::requests::build_check_email_probe_request(
+        "https://mail.example.test:8443/ajax.php",
+        "token123",
+        "alias@example.com",
+        "1700000000000",
+        std::optional<std::string_view>("guerrillamail.com")
+    );
+
+    REQUIRE(
+        request.url ==
+        "https://mail.example.test:8443/ajax.php?f=check_email&seq=1&site=guerrillamail.com&in=alias&_=1700000000000"
+    );
+    REQUIRE(header_value(request.headers, "Host") == "mail.example.test:8443");
+    REQUIRE(header_value(request.headers, "Origin") == "https://mail.example.test:8443");
+    REQUIRE(header_value(request.headers, "Referer") == "https://mail.example.test:8443/");
+}
+
+TEST_CASE("check_email probe rejects an empty site override", "[requests]") {
+    try {
+        (void)guerrillamail::protocol::requests::build_check_email_probe_request(
+            "https://mail.example.test:8443/ajax.php",
+            "token123",
+            "alias@example.com",
+            "1700000000000",
+            std::optional<std::string_view>("")
+        );
+        FAIL("expected exception");
+    } catch (const guerrillamail::Error& error) {
+        REQUIRE(error.code() == guerrillamail::ErrorCode::invalid_argument);
+    }
+}
+
 TEST_CASE("set_email_user request builds a POST with rust-aligned query body and headers", "[requests]") {
     const auto request = guerrillamail::protocol::requests::build_set_email_user_request(
         "https://mail.example.test:8443/ajax.php",
@@ -160,6 +193,23 @@ TEST_CASE("set_email_user request rejects an empty override", "[requests]") {
             "alias",
             std::optional<std::string_view>("")
         );
+        FAIL("expected exception");
+    } catch (const guerrillamail::Error& error) {
+        REQUIRE(error.code() == guerrillamail::ErrorCode::invalid_argument);
+    }
+}
+
+TEST_CASE("extract_alias accepts alias-only input", "[requests]") {
+    REQUIRE(guerrillamail::protocol::requests::extract_alias("alias") == "alias");
+}
+
+TEST_CASE("extract_alias returns the local-part of a full address", "[requests]") {
+    REQUIRE(guerrillamail::protocol::requests::extract_alias("alias@example.com") == "alias");
+}
+
+TEST_CASE("extract_alias rejects empty alias input", "[requests]") {
+    try {
+        (void)guerrillamail::protocol::requests::extract_alias("@example.com");
         FAIL("expected exception");
     } catch (const guerrillamail::Error& error) {
         REQUIRE(error.code() == guerrillamail::ErrorCode::invalid_argument);

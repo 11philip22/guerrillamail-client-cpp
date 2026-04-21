@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Working `Client::create_email(...)` support using the bootstrapped session, shared authenticated AJAX request helpers, and response parsing for returned `email_addr` values.
 - Focused unit and integration coverage for the `set_email_user` flow, including session reuse, alias handling, request-shape checks, and malformed-response classification.
 - Optional `ClientOptions.site` override for the `create_email(...)` `site` form field when protocol compatibility requires a fixed logical site value.
+- Working `Client::get_messages(...)` support using the bootstrapped session, alias extraction, shared authenticated AJAX GET request helpers, and parsing of inbox `list` responses into `Message` values.
+- Inbox parsing helpers and coverage for `list` shape validation, message field extraction, and malformed message-entry classification.
+- Expanded `Message` with `mail_excerpt` and `mail_timestamp` to stay closer to the upstream inbox payload.
 
 ### Changed
 - Expanded `guerrillamail::Error` to carry optional HTTP status information for `http_status` failures.
@@ -32,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Derived AJAX probe `site` and origin metadata from the configured endpoint instead of hardcoding production-only request values.
 - Aligned AJAX probe URL validation with header construction so malformed endpoint URLs fail early as `invalid_argument` errors.
 - Kept `create_email(...)` default `site` behavior aligned with the configured AJAX host while allowing an explicit per-client override for compatibility cases.
-- Documented that `ClientOptions.site` currently applies only to `create_email(...)` until later AJAX flows make an explicit decision about honoring it.
+- Expanded the current `ClientOptions.site` scope to cover both `create_email(...)` and `get_messages(...)` while leaving later operations to make explicit request-specific decisions.
 
 ### Fixed
 - Hardened internal libcurl setup and response-code handling by checking configuration and info-query return codes instead of silently ignoring failures.
