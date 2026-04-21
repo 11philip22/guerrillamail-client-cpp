@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GUERRILLAMAIL_PROTOCOL_REQUESTS_HPP
+#define GUERRILLAMAIL_PROTOCOL_REQUESTS_HPP
 
 #include <optional>
 #include <string>
@@ -58,3 +59,5 @@ namespace guerrillamail::protocol::requests {
 );
 
 } // namespace guerrillamail::protocol::requests
+
+#endif // GUERRILLAMAIL_PROTOCOL_REQUESTS_HPP

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GUERRILLAMAIL_TRANSPORT_CURL_SESSION_HPP
+#define GUERRILLAMAIL_TRANSPORT_CURL_SESSION_HPP
 
 #include <chrono>
 #include <optional>
@@ -54,3 +55,5 @@ private:
 };
 
 } // namespace guerrillamail::transport
+
+#endif // GUERRILLAMAIL_TRANSPORT_CURL_SESSION_HPP

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GUERRILLAMAIL_CLIENT_HPP
+#define GUERRILLAMAIL_CLIENT_HPP
 
 #include <chrono>
 #include <cstdint>
@@ -51,3 +52,5 @@ private:
 };
 
 } // namespace guerrillamail
+
+#endif // GUERRILLAMAIL_CLIENT_HPP

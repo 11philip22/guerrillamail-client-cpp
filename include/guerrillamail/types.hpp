@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GUERRILLAMAIL_TYPES_HPP
+#define GUERRILLAMAIL_TYPES_HPP
 
 #include <cstdint>
 #include <optional>
@@ -35,3 +36,5 @@ struct EmailDetails {
 };
 
 } // namespace guerrillamail
+
+#endif // GUERRILLAMAIL_TYPES_HPP

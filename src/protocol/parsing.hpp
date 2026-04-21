@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GUERRILLAMAIL_PROTOCOL_PARSING_HPP
+#define GUERRILLAMAIL_PROTOCOL_PARSING_HPP
 
 #include <string_view>
 #include <vector>
@@ -19,3 +20,5 @@ std::vector<Attachment> parse_attachment_list(const nlohmann::json& value);
 EmailDetails parse_email_details(const nlohmann::json& object);
 
 } // namespace guerrillamail::protocol::parsing
+
+#endif // GUERRILLAMAIL_PROTOCOL_PARSING_HPP

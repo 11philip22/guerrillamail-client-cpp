@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GUERRILLAMAIL_ERROR_HPP
+#define GUERRILLAMAIL_ERROR_HPP
 
 #include <optional>
 #include <stdexcept>
@@ -29,3 +30,5 @@ private:
 };
 
 } // namespace guerrillamail
+
+#endif // GUERRILLAMAIL_ERROR_HPP

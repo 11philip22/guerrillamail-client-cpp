@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GUERRILLAMAIL_PROTOCOL_BOOTSTRAP_HPP
+#define GUERRILLAMAIL_PROTOCOL_BOOTSTRAP_HPP
 
 #include <string>
 #include <string_view>
@@ -15,3 +16,5 @@ BootstrapResult perform(transport::CurlSession& session, std::string_view base_u
 std::string extract_api_token(std::string_view html);
 
 } // namespace guerrillamail::protocol::bootstrap
+
+#endif // GUERRILLAMAIL_PROTOCOL_BOOTSTRAP_HPP
