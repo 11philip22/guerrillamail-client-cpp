@@ -75,23 +75,33 @@ cmake -S . -B build ^
 
 The example target is defined in `examples/basic_flow.cpp`.
 
-It demonstrates:
+It mirrors the Rust demo style and demonstrates:
 
-- session bootstrap
-- address creation
-- inbox listing
-- message fetch
+- client creation with optional configuration comments
+- temporary address creation with a generated alias
+- polling for incoming messages
+- fetching full message content
 - optional attachment download
-- session cleanup
+- session cleanup via `delete_email(...)`
 
 Build examples with the normal CMake build, then run:
 
 ```powershell
-.
-build\examples\Debug\guerrillamail-cpp-example-basic.exe
+.\build\examples\Debug\guerrillamail-cpp-example-basic.exe
 ```
 
+The example is intended as a real manual demo, not just a compile check. It will:
+
+- create a new temporary address
+- print the address so you can send mail to it
+- poll for up to 2 minutes
+- print message summaries and body previews
+- download the first attachment of each message when present
+- forget the address before exiting
+
 ## Minimal Usage
+
+If you want the smallest possible consumer example instead of the full demo:
 
 ```cpp
 #include "guerrillamail/client.hpp"
@@ -99,7 +109,7 @@ build\examples\Debug\guerrillamail-cpp-example-basic.exe
 int main() {
     auto client = guerrillamail::Client::create();
 
-    const auto email = client.create_email("demo");
+    const auto email = client.create_email();
     const auto messages = client.get_messages(email);
 
     if (!messages.empty()) {
