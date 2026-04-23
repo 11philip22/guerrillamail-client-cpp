@@ -1,4 +1,19 @@
-# guerrillamail-cpp
+<p align="center">
+  <img src="assets/hero-banner.png" alt="guerrillamail-cpp hero banner" width="980">
+</p>
+
+<p align="center">
+  <a href="https://en.cppreference.com/w/cpp/20"><img src="https://img.shields.io/badge/C%2B%2B-20-F59E0B?style=for-the-badge&logo=c%2B%2B&logoColor=white" alt="C++20"></a>
+  <a href="https://cmake.org/"><img src="https://img.shields.io/badge/CMake-3.20%2B-3B82F6?style=for-the-badge&logo=cmake&logoColor=white" alt="CMake 3.20+"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-8B5CF6?style=for-the-badge" alt="MIT License"></a>
+  <a href="https://git.woldtech.nl/woldtech/guerrillamail-client-cpp"><img src="https://img.shields.io/badge/PRs-Welcome-22C55E?style=for-the-badge" alt="PRs Welcome"></a>
+</p>
+
+<p align="center">
+  <a href="#status">Status</a> · <a href="#public-api">Public API</a> · <a href="#build">Build</a> · <a href="#example">Example</a> · <a href="#minimal-usage">Minimal Usage</a> · <a href="#testing">Testing</a> · <a href="#live-tests">Live Tests</a> · <a href="#notes">Notes</a> · <a href="#repository-layout">Repository Layout</a> · <a href="#project-goal">Project Goal</a>
+</p>
+
+---
 
 `guerrillamail-cpp` is a C++20 client library for the GuerrillaMail temporary email service.
 
@@ -173,3 +188,13 @@ Attachment download is still best validated manually when you have a real inboun
 ## Project Goal
 
 This library is intended to stay close to the Rust reference client while still presenting a small, synchronous, idiomatic C++ surface.
+
+## Support
+
+If this crate saves you time or helps your work, support is appreciated:
+
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/11philip22)
+
+## License
+
+This project is licensed under the MIT License; see the [license](https://opensource.org/licenses/MIT) for details.
