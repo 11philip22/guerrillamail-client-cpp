@@ -4,8 +4,6 @@
 
 <p><strong>A small C++20 client for GuerrillaMail temporary inboxes.</strong></p>
 
-<p>Bootstrap a GuerrillaMail session, create disposable addresses, read messages, fetch message details, forget addresses, and download attachments through a synchronous C++ API.</p>
-
 <p>
   <a href="https://en.cppreference.com/w/cpp/20"><img src="https://img.shields.io/badge/C%2B%2B-20-F59E0B?style=for-the-badge&logo=c%2B%2B&logoColor=white" alt="C++20"></a>
   <a href="https://cmake.org/"><img src="https://img.shields.io/badge/CMake-3.22%2B-3B82F6?style=for-the-badge&logo=cmake&logoColor=white" alt="CMake 3.22+"></a>
@@ -25,6 +23,10 @@
 </p>
 
 </div>
+
+---
+
+<p>Bootstrap a GuerrillaMail session, create disposable addresses, read messages, fetch message details, forget addresses, and download attachments through a synchronous C++ API.</p>
 
 ## Status
 
