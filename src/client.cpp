@@ -21,10 +21,6 @@ std::string make_timestamp() {
     return std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
 }
 
-[[noreturn]] void throw_not_implemented() {
-    throw Error(ErrorCode::internal, "not implemented");
-}
-
 std::string trim_trailing_slash(std::string value) {
     while (!value.empty() && value.back() == '/') {
         value.pop_back();
