@@ -19,8 +19,6 @@ What the live test validates:
 - a follow-up probe without bootstrap cookies is compared and the result is surfaced in test output
 - the local Windows `libcurl` runtime can complete a real HTTPS request in practice
 
-The current findings for `WOL-172` live in `docs/WOL-172-live-validation.md`.
-
 ## Attachment Flow Notes
 
 - Attachment download uses the `/inbox` endpoint, not `ajax.php`.

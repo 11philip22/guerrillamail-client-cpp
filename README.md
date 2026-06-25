@@ -130,7 +130,7 @@ $env:GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS = "1"
 ctest -C Debug --output-on-failure --test-dir build --tests-regex "live"
 ```
 
-The live checks currently validate bootstrap token extraction, AJAX session behavior, and create/list/delete sanity against the real service. See `docs/WOL-172-live-validation.md` for the recorded protocol notes.
+The live checks currently validate bootstrap token extraction, AJAX session behavior, and create/list/delete sanity against the real service.
 
 ## Error Model
 
@@ -153,6 +153,5 @@ include/guerrillamail/   public headers
 src/                     client, protocol, parsing, and curl transport
 examples/                basic end-to-end demo
 tests/                   unit and opt-in live tests
-docs/                    protocol validation notes
 third_party/vcpkg/       pinned dependency manager submodule
 ```

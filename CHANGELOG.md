@@ -15,11 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Catch2 smoke tests and shared test-support directories for future unit and integration coverage.
 - Basic example program linked only through the public library target.
 - Internal `CurlSession` transport wrapper with request/response types, cookie persistence, request headers, timeout, proxy, and TLS verification support.
-- Focused unit and loopback integration tests covering error classification, JSON syntax vs response-shape parsing, cookie persistence, and transport failure mapping.
-- Bootstrap session initialization with homepage token extraction and mock-server coverage for bootstrap success, failure classification, and cookie continuity.
+- Focused unit tests covering error classification and JSON syntax vs response-shape parsing.
+- Bootstrap session initialization with homepage token extraction.
 - Minimal internal AJAX request helpers for Rust-aligned `check_email` probe URL and header construction.
 - Opt-in live GuerrillaMail validation coverage for bootstrap success, token extraction, AJAX header sufficiency, and cookie-backed session behavior.
-- Integration test guidance and WOL-172 notes for rerunning and interpreting live protocol validation findings.
+- Integration test guidance for rerunning live protocol validation.
 - Working `Client::create_email(...)` support using the bootstrapped session, shared authenticated AJAX request helpers, and response parsing for returned `email_addr` values.
 - Focused unit and integration coverage for the `set_email_user` flow, including session reuse, alias handling, request-shape checks, and malformed-response classification.
 - Optional `ClientOptions.site` override for the `create_email(...)` `site` form field when protocol compatibility requires a fixed logical site value.
@@ -30,8 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Attachment/detail parsing coverage for optional `sid_token`, attachment-count string-or-number handling, malformed attachment metadata, and fetch-email request shape.
 - Working `Client::delete_email(...)` support using the current session's authenticated `forget_me` flow, along with request-shape and failure-classification coverage.
 - Working `Client::fetch_attachment(...)` support using the `/inbox` download flow, conditional `sid_token` handling, and binary-safe byte return semantics.
-- Mock-server attachment download coverage for binary payloads, missing `part_id`, conditional `sid_token`, and non-2xx download failures.
-- A public-only end-to-end mock test target that exercises the first-version API using only public headers and the public CMake target.
 - A real happy-path example program showing bootstrap, create, list, fetch, optional attachment download, and cleanup through the public API.
 - An opt-in live end-to-end GuerrillaMail sanity test covering bootstrap, create, list, and delete against the real service.
 
