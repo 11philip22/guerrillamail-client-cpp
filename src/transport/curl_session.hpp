@@ -2,6 +2,7 @@
 #define GUERRILLAMAIL_TRANSPORT_CURL_SESSION_HPP
 
 #include <chrono>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -51,7 +52,7 @@ public:
 
 private:
     struct Impl;
-    Impl* impl_;
+    std::unique_ptr<Impl> impl_;
 };
 
 } // namespace guerrillamail::transport

@@ -8,11 +8,7 @@
 
 namespace guerrillamail::protocol::bootstrap {
 
-struct BootstrapResult {
-    std::string api_token;
-};
-
-BootstrapResult perform(transport::CurlSession& session, std::string_view base_url);
+std::string perform(transport::CurlSession& session, std::string_view base_url);
 std::string extract_api_token(std::string_view html);
 
 } // namespace guerrillamail::protocol::bootstrap

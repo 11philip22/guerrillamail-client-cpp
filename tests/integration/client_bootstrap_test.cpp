@@ -162,10 +162,10 @@ TEST_CASE("bootstrap preserves cookies for follow-up request on same session", "
     });
 
     CurlSession session;
-    const auto bootstrap = guerrillamail::protocol::bootstrap::perform(session, server.url("/"));
+    const auto api_token = guerrillamail::protocol::bootstrap::perform(session, server.url("/"));
     const auto response = session.execute(Request{HttpMethod::get, server.url("/check-cookie")});
 
-    REQUIRE(bootstrap.api_token == "cookie-token");
+    REQUIRE(api_token == "cookie-token");
     REQUIRE(response.body == "cookie-present");
 }
 

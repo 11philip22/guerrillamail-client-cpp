@@ -24,7 +24,7 @@ std::vector<transport::Header> build_bootstrap_headers() {
 
 } // namespace
 
-BootstrapResult perform(transport::CurlSession& session, std::string_view base_url) {
+std::string perform(transport::CurlSession& session, std::string_view base_url) {
     if (base_url.empty()) {
         throw guerrillamail::Error(
             guerrillamail::ErrorCode::invalid_argument,
@@ -38,7 +38,7 @@ BootstrapResult perform(transport::CurlSession& session, std::string_view base_u
         build_bootstrap_headers(),
     });
 
-    return BootstrapResult{extract_api_token(response.body)};
+    return extract_api_token(response.body);
 }
 
 std::string extract_api_token(std::string_view html) {

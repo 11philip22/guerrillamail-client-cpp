@@ -163,25 +163,13 @@ struct CurlSession::Impl {
     SessionOptions options;
 };
 
-CurlSession::CurlSession(SessionOptions options) : impl_(new Impl(std::move(options))) {}
+CurlSession::CurlSession(SessionOptions options) : impl_(std::make_unique<Impl>(std::move(options))) {}
 
-CurlSession::~CurlSession() {
-    delete impl_;
-}
+CurlSession::~CurlSession() = default;
 
-CurlSession::CurlSession(CurlSession&& other) noexcept : impl_(other.impl_) {
-    other.impl_ = nullptr;
-}
+CurlSession::CurlSession(CurlSession&& other) noexcept = default;
 
-CurlSession& CurlSession::operator=(CurlSession&& other) noexcept {
-    if (this != &other) {
-        delete impl_;
-        impl_ = other.impl_;
-        other.impl_ = nullptr;
-    }
-
-    return *this;
-}
+CurlSession& CurlSession::operator=(CurlSession&& other) noexcept = default;
 
 Response CurlSession::execute(const Request& request) {
     if (impl_ == nullptr || impl_->handle == nullptr) {

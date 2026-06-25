@@ -54,13 +54,13 @@ TEST_CASE("live bootstrap and ajax probe validate current GuerrillaMail behavior
     REQUIRE_NOTHROW((void)guerrillamail::Client::create(options));
 
     guerrillamail::transport::CurlSession bootstrapped_session;
-    const auto bootstrap = guerrillamail::protocol::bootstrap::perform(bootstrapped_session, kLiveBaseUrl);
-    REQUIRE_FALSE(bootstrap.api_token.empty());
+    const auto api_token = guerrillamail::protocol::bootstrap::perform(bootstrapped_session, kLiveBaseUrl);
+    REQUIRE_FALSE(api_token.empty());
 
     const auto alias = make_probe_alias();
     const auto same_session_request = guerrillamail::protocol::requests::build_check_email_probe_request(
         kLiveAjaxUrl,
-        bootstrap.api_token,
+        api_token,
         alias,
         make_timestamp()
     );
@@ -77,7 +77,7 @@ TEST_CASE("live bootstrap and ajax probe validate current GuerrillaMail behavior
         guerrillamail::transport::CurlSession fresh_session;
         const auto fresh_session_request = guerrillamail::protocol::requests::build_check_email_probe_request(
             kLiveAjaxUrl,
-            bootstrap.api_token,
+            api_token,
             alias,
             make_timestamp()
         );

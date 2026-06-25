@@ -62,12 +62,12 @@ Client Client::create(const ClientOptions& options) {
     session_options.verify_tls = normalized.verify_tls;
 
     auto session = transport::CurlSession(std::move(session_options));
-    const auto bootstrap = protocol::bootstrap::perform(session, normalized.base_url);
+    auto api_token = protocol::bootstrap::perform(session, normalized.base_url);
 
     return Client(std::make_shared<Impl>(
         std::move(normalized),
         std::move(session),
-        bootstrap.api_token
+        std::move(api_token)
     ));
 }
 
