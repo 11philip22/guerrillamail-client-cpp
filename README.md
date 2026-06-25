@@ -2,7 +2,7 @@
 
 <h1>guerrillamail-cpp</h1>
 
-<p><strong>A small C++20 RAII client for GuerrillaMail temporary inboxes.</strong></p>
+<p><strong>A small C++20 client for GuerrillaMail temporary inboxes.</strong></p>
 
 <p>Bootstrap a GuerrillaMail session, create disposable addresses, read messages, fetch message details, forget addresses, and download attachments through a synchronous C++ API.</p>
 
@@ -119,7 +119,7 @@ Run the default test suite with CTest:
 ctest -C Debug --output-on-failure --test-dir build
 ```
 
-The default suite includes deterministic unit tests for parsing, request construction, bootstrap extraction, and error behavior, plus mock-server integration tests for the public API and session-backed flows.
+The default suite includes deterministic unit tests for parsing, request construction, bootstrap extraction, and error behavior. Live integration tests are opt-in.
 
 ## Live Validation
 
@@ -152,7 +152,7 @@ The error code keeps these cases distinguishable:
 include/guerrillamail/   public headers
 src/                     client, protocol, parsing, and curl transport
 examples/                basic end-to-end demo
-tests/                   unit, mock-server integration, and opt-in live tests
+tests/                   unit and opt-in live tests
 docs/                    protocol validation notes
 third_party/vcpkg/       pinned dependency manager submodule
 ```

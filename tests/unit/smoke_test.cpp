@@ -33,6 +33,6 @@ TEST_CASE("client is movable but not copyable", "[smoke]") {
 TEST_CASE("test support resolves repository paths", "[smoke]") {
     const auto root = guerrillamail::tests::support::project_root();
 
-    REQUIRE(std::filesystem::exists(root / "AGENTS.md"));
+    REQUIRE(std::filesystem::exists(root / "README.md"));
     REQUIRE(root == guerrillamail::tests::support::project_root());
 }

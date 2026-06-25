@@ -1,9 +1,6 @@
 # Integration Tests
 
-The integration suite has two layers:
-
-1. Mock-server tests that run by default and validate deterministic request/response behavior.
-2. Opt-in live tests that validate current GuerrillaMail behavior against the real service.
+The integration suite contains opt-in live tests that validate current GuerrillaMail behavior against the real service.
 
 ## Live Tests
 
@@ -30,7 +27,3 @@ The current findings for `WOL-172` live in `docs/WOL-172-live-validation.md`.
 - The download query intentionally omits `site`; `ClientOptions.site` does not affect attachment downloads.
 - `sid_token` is included only when present and non-empty on the fetched email details.
 - Live attachment validation remains a manual check because it depends on having a real message with an attachment available during the test run.
-
-## Public End-To-End Test
-
-`public_api_end_to_end_test.cpp` is a mock-server happy-path test that uses only public library headers and the public CMake target while exercising the first-version public API end to end.
