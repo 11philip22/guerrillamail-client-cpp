@@ -156,9 +156,3 @@ tests/                   unit, mock-server integration, and opt-in live tests
 docs/                    protocol validation notes
 third_party/vcpkg/       pinned dependency manager submodule
 ```
-
-## Support
-
-If this project saves you time or helps your work:
-
-[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/11philip22)

@@ -5,6 +5,7 @@
 #include <optional>
 #include <cctype>
 #include <iomanip>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -22,33 +23,7 @@ constexpr std::string_view kAjaxAccept = "application/json, text/javascript, */*
 constexpr std::string_view kAcceptLanguage = "en-US,en;q=0.5";
 constexpr std::string_view kFormContentType = "application/x-www-form-urlencoded; charset=UTF-8";
 
-class ScopedCurlUrl {
-public:
-    ScopedCurlUrl() : handle_(curl_url()) {
-        if (handle_ == nullptr) {
-            throw guerrillamail::Error(
-                guerrillamail::ErrorCode::internal,
-                "curl_url failed"
-            );
-        }
-    }
-
-    ~ScopedCurlUrl() {
-        if (handle_ != nullptr) {
-            curl_url_cleanup(handle_);
-        }
-    }
-
-    ScopedCurlUrl(const ScopedCurlUrl&) = delete;
-    ScopedCurlUrl& operator=(const ScopedCurlUrl&) = delete;
-
-    [[nodiscard]] CURLU* get() const noexcept {
-        return handle_;
-    }
-
-private:
-    CURLU* handle_ = nullptr;
-};
+using CurlUrlPtr = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>;
 
 struct AjaxUrlMetadata {
     std::string site;
@@ -59,6 +34,17 @@ struct AjaxUrlMetadata {
 
 [[noreturn]] void throw_invalid_argument(std::string message) {
     throw guerrillamail::Error(guerrillamail::ErrorCode::invalid_argument, std::move(message));
+}
+
+CurlUrlPtr make_curl_url() {
+    auto url = CurlUrlPtr(curl_url(), curl_url_cleanup);
+    if (url == nullptr) {
+        throw guerrillamail::Error(
+            guerrillamail::ErrorCode::internal,
+            "curl_url failed"
+        );
+    }
+    return url;
 }
 
 std::string get_url_part(CURLU* handle, CURLUPart part) {
@@ -88,7 +74,7 @@ AjaxUrlMetadata parse_ajax_url(std::string_view ajax_url) {
     }
 
     const auto ajax_url_string = std::string(ajax_url);
-    ScopedCurlUrl url;
+    const auto url = make_curl_url();
     if (curl_url_set(url.get(), CURLUPART_URL, ajax_url_string.c_str(), 0) != CURLUE_OK) {
         throw_invalid_argument("ajax_url is not a valid absolute URL");
     }
