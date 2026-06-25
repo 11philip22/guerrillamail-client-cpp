@@ -124,12 +124,8 @@ int main() {
         // =========================================
         std::cout << "\nCleaning up email address...\n";
         try {
-            const auto deleted = client.delete_email(email);
-            if (deleted) {
-                std::cout << "   Email address deleted\n";
-            } else {
-                std::cout << "   Deletion may have failed\n";
-            }
+            client.delete_email(email);
+            std::cout << "   Email address deleted\n";
         } catch (const guerrillamail::Error& error) {
             std::cerr << "   Error: " << error.what() << "\n";
         }

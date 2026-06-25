@@ -599,32 +599,6 @@ TEST_CASE("client fetch_email parses details and attachment metadata", "[bootstr
     REQUIRE(saw_expected_query);
 }
 
-TEST_CASE("client list_attachments returns parsed attachment metadata", "[bootstrap][integration]") {
-    MockHttpServer server([](const MockHttpRequest& request) {
-        if (request.path == "/") {
-            return MockHttpResponse{200, {{"Set-Cookie", "sid=test123; Path=/"}}, "<script>api_token : 'token123'</script>"};
-        }
-
-        if (request.path.find("/ajax.php?f=fetch_email") == 0) {
-            return MockHttpResponse{200, {}, R"({"mail_id":"mail-123","mail_from":"from@example.com","mail_subject":"subject","mail_body":"<p>body</p>","mail_timestamp":"1700000000","att_info":[{"f":"file.txt","t":"text/plain","p":"99"}]})"};
-        }
-
-        return MockHttpResponse{400, {}, "unexpected"};
-    });
-
-    ClientOptions options;
-    options.base_url = server.url("/");
-    options.ajax_url = server.url("/ajax.php");
-
-    const auto client = Client::create(options);
-    const auto attachments = client.list_attachments("myalias@example.com", "mail-123");
-
-    REQUIRE(attachments.size() == 1);
-    REQUIRE(attachments[0].filename == "file.txt");
-    REQUIRE(attachments[0].content_type_or_hint == std::optional<std::string>("text/plain"));
-    REQUIRE(attachments[0].part_id == "99");
-}
-
 TEST_CASE("client fetch_email uses explicit site override without changing endpoint-derived headers", "[bootstrap][integration]") {
     bool saw_override_site = false;
     bool saw_host_header = false;
@@ -723,7 +697,7 @@ TEST_CASE("client delete_email best-effort session cleanup reuses bootstrap sess
 
     const auto client = Client::create(options);
 
-    REQUIRE(client.delete_email("myalias@example.com"));
+    client.delete_email("myalias@example.com");
     REQUIRE(saw_post_method);
     REQUIRE(saw_expected_query);
     REQUIRE(saw_cookie);
@@ -763,7 +737,7 @@ TEST_CASE("client delete_email uses explicit site override without changing endp
     const auto expected_origin = origin_from_url(options.ajax_url);
 
     const auto client = Client::create(options);
-    REQUIRE(client.delete_email("myalias@example.com"));
+    client.delete_email("myalias@example.com");
     REQUIRE(observed_body == "site=guerrillamail.com&in=myalias");
     REQUIRE(observed_host == expected_host);
     REQUIRE(observed_origin == expected_origin);

@@ -70,7 +70,7 @@ TEST_CASE("public API end-to-end flow works against mock server", "[integration]
     REQUIRE(details.mail_id == "mail-123");
     REQUIRE(details.attachments.size() == 1);
 
-    const auto attachments = client.list_attachments(email, messages[0].mail_id);
+    const auto& attachments = details.attachments;
     REQUIRE(attachments.size() == 1);
     REQUIRE(attachments[0].filename == "file.bin");
     REQUIRE(attachments[0].content_type_or_hint == std::optional<std::string>("application/octet-stream"));
@@ -79,7 +79,7 @@ TEST_CASE("public API end-to-end flow works against mock server", "[integration]
     const auto bytes = client.fetch_attachment(email, messages[0].mail_id, attachments[0]);
     REQUIRE(bytes == std::vector<std::uint8_t>{'A', 0, 'B'});
 
-    REQUIRE(client.delete_email(email));
+    client.delete_email(email);
 
     REQUIRE(saw_bootstrap_cookie);
     REQUIRE(saw_attachment_download);

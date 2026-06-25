@@ -127,7 +127,7 @@ EmailDetails Client::fetch_email(std::string_view email, std::string_view mail_i
     return protocol::parsing::parse_email_details(json);
 }
 
-bool Client::delete_email(std::string_view email) const {
+void Client::delete_email(std::string_view email) const {
     const auto site_override = impl_->options.site.has_value()
                                    ? std::optional<std::string_view>(impl_->options.site.value())
                                    : std::nullopt;
@@ -138,12 +138,6 @@ bool Client::delete_email(std::string_view email) const {
         email,
         site_override
     ));
-
-    return true;
-}
-
-std::vector<Attachment> Client::list_attachments(std::string_view email, std::string_view mail_id) const {
-    return fetch_email(email, mail_id).attachments;
 }
 
 std::vector<std::uint8_t> Client::fetch_attachment(

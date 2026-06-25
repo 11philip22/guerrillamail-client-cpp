@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Working `Client::get_messages(...)` support using the bootstrapped session, alias extraction, shared authenticated AJAX GET request helpers, and parsing of inbox `list` responses into `Message` values.
 - Inbox parsing helpers and coverage for `list` shape validation, message field extraction, and malformed message-entry classification.
 - Expanded `Message` with `mail_excerpt` and `mail_timestamp` to stay closer to the upstream inbox payload.
-- Working `Client::fetch_email(...)` and `Client::list_attachments(...)` support using the bootstrapped session, shared authenticated AJAX GET request helpers, and Rust-aligned parsing of full message details and attachment metadata.
+- Working `Client::fetch_email(...)` support using the bootstrapped session, shared authenticated AJAX GET request helpers, and Rust-aligned parsing of full message details and attachment metadata.
 - Attachment/detail parsing coverage for optional `sid_token`, attachment-count string-or-number handling, malformed attachment metadata, and fetch-email request shape.
 - Working `Client::delete_email(...)` support using the current session's authenticated `forget_me` flow, along with request-shape and failure-classification coverage.
 - Working `Client::fetch_attachment(...)` support using the `/inbox` download flow, conditional `sid_token` handling, and binary-safe byte return semantics.
@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kept `create_email(...)` default `site` behavior aligned with the configured AJAX host while allowing an explicit per-client override for compatibility cases.
 - Expanded the current `ClientOptions.site` scope to cover `create_email(...)`, `get_messages(...)`, `fetch_email(...)`, and `delete_email(...)` while leaving later operations to make explicit request-specific decisions.
 - Reshaped the public `Attachment` type to the upstream metadata-aligned `{filename, content_type_or_hint, part_id}` form without adding compatibility fields for the older `{name, url, size}` placeholder shape.
-- Changed `delete_email(...)` to return `bool` so the public API can preserve an observable success result instead of treating all successful forget flows as `void`.
+- Changed `delete_email(...)` to return `void`; successful forget flows either complete or throw.
 
 ### Fixed
 - Hardened internal libcurl setup and response-code handling by checking configuration and info-query return codes instead of silently ignoring failures.

@@ -93,7 +93,7 @@ int main() {
         }
     }
 
-    (void)client.delete_email(email);
+    client.delete_email(email);
 }
 ```
 
