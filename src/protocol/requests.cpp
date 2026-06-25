@@ -1,10 +1,10 @@
 #include "protocol/requests.hpp"
 
+#include <curl/curl.h>
 #include <curl/urlapi.h>
 
 #include <optional>
-#include <cctype>
-#include <iomanip>
+#include <limits>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -24,6 +24,7 @@ constexpr std::string_view kAcceptLanguage = "en-US,en;q=0.5";
 constexpr std::string_view kFormContentType = "application/x-www-form-urlencoded; charset=UTF-8";
 
 using CurlUrlPtr = std::unique_ptr<CURLU, decltype(&curl_url_cleanup)>;
+using CurlStringPtr = std::unique_ptr<char, decltype(&curl_free)>;
 
 struct AjaxUrlMetadata {
     std::string site;
@@ -98,26 +99,26 @@ AjaxUrlMetadata parse_ajax_url(std::string_view ajax_url) {
     return AjaxUrlMetadata{derive_site_from_host(host), host_with_port, origin, origin + "/"};
 }
 
-bool is_unreserved(unsigned char character) {
-    return std::isalnum(character) != 0 || character == '-' || character == '.' || character == '_' ||
-           character == '~';
-}
-
 std::string percent_encode(std::string_view input) {
-    std::ostringstream encoded;
-    encoded << std::uppercase << std::hex;
-
-    for (const auto character : input) {
-        const auto byte = static_cast<unsigned char>(character);
-        if (is_unreserved(byte)) {
-            encoded << character;
-            continue;
-        }
-
-        encoded << '%' << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+    if (input.empty()) {
+        return {};
+    }
+    if (input.size() > static_cast<std::size_t>((std::numeric_limits<int>::max)())) {
+        throw_invalid_argument("query parameter is too large to encode");
     }
 
-    return encoded.str();
+    auto escaped = CurlStringPtr(
+        curl_easy_escape(nullptr, input.data(), static_cast<int>(input.size())),
+        curl_free
+    );
+    if (escaped == nullptr) {
+        throw guerrillamail::Error(
+            guerrillamail::ErrorCode::internal,
+            "curl_easy_escape failed"
+        );
+    }
+
+    return escaped.get();
 }
 
 std::string build_query_string(const std::vector<std::pair<std::string_view, std::string>>& params) {
