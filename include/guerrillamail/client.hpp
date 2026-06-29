@@ -27,10 +27,12 @@ class Client {
 public:
     static Client create(const ClientOptions& options = {});
 
+    ~Client();
+
     Client(const Client&) = delete;
     Client& operator=(const Client&) = delete;
-    Client(Client&&) noexcept = default;
-    Client& operator=(Client&&) noexcept = default;
+    Client(Client&&) noexcept;
+    Client& operator=(Client&&) noexcept;
 
     std::string create_email(std::string_view alias = {}) const;
     std::vector<Message> get_messages(std::string_view email) const;
@@ -45,9 +47,9 @@ public:
 private:
     struct Impl;
 
-    explicit Client(std::shared_ptr<Impl> impl);
+    explicit Client(std::unique_ptr<Impl> impl);
 
-    std::shared_ptr<Impl> impl_;
+    std::unique_ptr<Impl> impl_;
 };
 
 } // namespace guerrillamail

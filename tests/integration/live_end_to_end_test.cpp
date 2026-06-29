@@ -9,17 +9,6 @@
 
 namespace {
 
-bool live_tests_enabled() {
-    const auto* const raw_value = std::getenv("GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS");
-    return raw_value != nullptr && std::string_view(raw_value) == "1";
-}
-
-void require_live_tests_enabled() {
-    if (!live_tests_enabled()) {
-        SKIP("set GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS=1 to run live GuerrillaMail validation");
-    }
-}
-
 std::string make_alias() {
     const auto now = std::chrono::system_clock::now().time_since_epoch();
     return "gmcpplive" + std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
@@ -28,7 +17,10 @@ std::string make_alias() {
 } // namespace
 
 TEST_CASE("live create list and delete flow succeeds against GuerrillaMail", "[integration][live]") {
-    require_live_tests_enabled();
+    const auto* const live_tests = std::getenv("GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS");
+    if (live_tests == nullptr || std::string_view(live_tests) != "1") {
+        SKIP("set GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS=1 to run live GuerrillaMail validation");
+    }
 
     const auto alias = make_alias();
     const auto client = guerrillamail::Client::create();

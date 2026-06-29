@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Simplified internal client ownership, site override plumbing, bootstrap token extraction, live-test skips, and HTTP status formatting without changing the public API.
+
 ### Removed
 - Low-value smoke/error tests and unused test-support scaffolding so the suite focuses on protocol and parsing behavior.
+- Test-only exposure of low-level request helper declarations; request-shape tests now exercise the public request builders.
 
 ## [0.1.0] - 2026-06-29
 

@@ -1,6 +1,5 @@
 #include "protocol/bootstrap.hpp"
 
-#include <regex>
 #include <string>
 #include <vector>
 
@@ -42,31 +41,43 @@ std::string perform(transport::CurlSession& session, std::string_view base_url) 
 }
 
 std::string extract_api_token(std::string_view html) {
-    try {
-        const std::regex token_regex(R"(api_token\s*:\s*'([^']*)')");
-        std::match_results<std::string_view::const_iterator> match;
-        if (!std::regex_search(html.begin(), html.end(), match, token_regex)) {
-            throw guerrillamail::Error(
-                guerrillamail::ErrorCode::token_parse,
-                "api token not found in bootstrap HTML"
-            );
+    constexpr std::string_view marker = "api_token";
+
+    for (auto key = html.find(marker); key != std::string_view::npos; key = html.find(marker, key + marker.size())) {
+        auto value = key + marker.size();
+        while (value < html.size() && (html[value] == ' ' || html[value] == '\t' || html[value] == '\n' || html[value] == '\r')) {
+            ++value;
+        }
+        if (value == html.size() || html[value] != ':') {
+            continue;
         }
 
-        const auto token = std::string(match[1].first, match[1].second);
-        if (token.empty()) {
+        ++value;
+        while (value < html.size() && (html[value] == ' ' || html[value] == '\t' || html[value] == '\n' || html[value] == '\r')) {
+            ++value;
+        }
+        if (value == html.size() || html[value] != '\'') {
+            continue;
+        }
+
+        const auto end = html.find('\'', value + 1);
+        if (end == std::string_view::npos) {
+            continue;
+        }
+        if (end == value + 1) {
             throw guerrillamail::Error(
                 guerrillamail::ErrorCode::token_parse,
                 "api token is empty"
             );
         }
 
-        return token;
-    } catch (const std::regex_error&) {
-        throw guerrillamail::Error(
-            guerrillamail::ErrorCode::token_parse,
-            "api token could not be extracted from bootstrap HTML"
-        );
+        return std::string(html.substr(value + 1, end - value - 1));
     }
+
+    throw guerrillamail::Error(
+        guerrillamail::ErrorCode::token_parse,
+        "api token not found in bootstrap HTML"
+    );
 }
 
 } // namespace guerrillamail::protocol::bootstrap

@@ -5,7 +5,6 @@
 #include <array>
 #include <limits>
 #include <mutex>
-#include <sstream>
 #include <string>
 #include <utility>
 
@@ -130,9 +129,7 @@ void apply_session_options(CURL* handle, const SessionOptions& options) {
 }
 
 std::string make_http_status_message(long status_code) {
-    std::ostringstream stream;
-    stream << "http request failed with status " << status_code;
-    return stream.str();
+    return "http request failed with status " + std::to_string(status_code);
 }
 
 } // namespace

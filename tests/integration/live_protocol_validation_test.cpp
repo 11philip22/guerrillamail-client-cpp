@@ -18,17 +18,6 @@ namespace {
 constexpr std::string_view kLiveBaseUrl = "https://www.guerrillamail.com";
 constexpr std::string_view kLiveAjaxUrl = "https://www.guerrillamail.com/ajax.php";
 
-bool live_tests_enabled() {
-    const auto* const raw_value = std::getenv("GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS");
-    return raw_value != nullptr && std::string_view(raw_value) == "1";
-}
-
-void require_live_tests_enabled() {
-    if (!live_tests_enabled()) {
-        SKIP("set GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS=1 to run live GuerrillaMail validation");
-    }
-}
-
 std::string make_timestamp() {
     const auto now = std::chrono::system_clock::now().time_since_epoch();
     return std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(now).count());
@@ -45,7 +34,10 @@ bool has_message_list(const nlohmann::json& json) {
 } // namespace
 
 TEST_CASE("live bootstrap and ajax probe validate current GuerrillaMail behavior", "[integration][live]") {
-    require_live_tests_enabled();
+    const auto* const live_tests = std::getenv("GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS");
+    if (live_tests == nullptr || std::string_view(live_tests) != "1") {
+        SKIP("set GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS=1 to run live GuerrillaMail validation");
+    }
 
     guerrillamail::ClientOptions options;
     options.base_url = std::string(kLiveBaseUrl);

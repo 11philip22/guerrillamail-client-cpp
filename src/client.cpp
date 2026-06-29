@@ -40,6 +40,10 @@ ClientOptions normalize_options(ClientOptions options) {
     return options;
 }
 
+std::optional<std::string_view> site_override(const ClientOptions& options) {
+    return options.site ? std::optional<std::string_view>(*options.site) : std::nullopt;
+}
+
 } // namespace
 
 struct Client::Impl {
@@ -51,7 +55,13 @@ struct Client::Impl {
     std::string api_token;
 };
 
-Client::Client(std::shared_ptr<Impl> impl) : impl_(std::move(impl)) {}
+Client::Client(std::unique_ptr<Impl> impl) : impl_(std::move(impl)) {}
+
+Client::~Client() = default;
+
+Client::Client(Client&&) noexcept = default;
+
+Client& Client::operator=(Client&&) noexcept = default;
 
 Client Client::create(const ClientOptions& options) {
     auto normalized = normalize_options(options);
@@ -64,7 +74,7 @@ Client Client::create(const ClientOptions& options) {
     auto session = transport::CurlSession(std::move(session_options));
     auto api_token = protocol::bootstrap::perform(session, normalized.base_url);
 
-    return Client(std::make_shared<Impl>(
+    return Client(std::make_unique<Impl>(
         std::move(normalized),
         std::move(session),
         std::move(api_token)
@@ -76,31 +86,23 @@ std::string Client::create_email(std::string_view alias) const {
         throw Error(ErrorCode::invalid_argument, "alias must not contain `@`");
     }
 
-    const auto site_override = impl_->options.site.has_value()
-                                   ? std::optional<std::string_view>(impl_->options.site.value())
-                                   : std::nullopt;
-
     const auto response = impl_->session.execute(protocol::requests::build_set_email_user_request(
         impl_->options.ajax_url,
         impl_->api_token,
         alias,
-        site_override
+        site_override(impl_->options)
     ));
     const auto json = protocol::parsing::parse_json(response.body);
     return protocol::parsing::require_string_member(json, "email_addr");
 }
 
 std::vector<Message> Client::get_messages(std::string_view email) const {
-    const auto site_override = impl_->options.site.has_value()
-                                   ? std::optional<std::string_view>(impl_->options.site.value())
-                                   : std::nullopt;
-
     const auto response = impl_->session.execute(protocol::requests::build_check_email_probe_request(
         impl_->options.ajax_url,
         impl_->api_token,
         email,
         make_timestamp(),
-        site_override
+        site_override(impl_->options)
     ));
     const auto json = protocol::parsing::parse_json(response.body);
     return protocol::parsing::parse_message_list(json);
@@ -111,32 +113,24 @@ EmailDetails Client::fetch_email(std::string_view email, std::string_view mail_i
         throw Error(ErrorCode::invalid_argument, "mail_id must not be empty");
     }
 
-    const auto site_override = impl_->options.site.has_value()
-                                   ? std::optional<std::string_view>(impl_->options.site.value())
-                                   : std::nullopt;
-
     const auto response = impl_->session.execute(protocol::requests::build_fetch_email_request(
         impl_->options.ajax_url,
         impl_->api_token,
         email,
         mail_id,
         make_timestamp(),
-        site_override
+        site_override(impl_->options)
     ));
     const auto json = protocol::parsing::parse_json(response.body);
     return protocol::parsing::parse_email_details(json);
 }
 
 void Client::delete_email(std::string_view email) const {
-    const auto site_override = impl_->options.site.has_value()
-                                   ? std::optional<std::string_view>(impl_->options.site.value())
-                                   : std::nullopt;
-
     (void)impl_->session.execute(protocol::requests::build_forget_me_request(
         impl_->options.ajax_url,
         impl_->api_token,
         email,
-        site_override
+        site_override(impl_->options)
     ));
 }
 

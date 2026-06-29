@@ -24,15 +24,18 @@ std::string header_value(
 } // namespace
 
 TEST_CASE("ajax headers match rust-aligned defaults", "[requests]") {
-    const auto headers = guerrillamail::protocol::requests::build_ajax_headers(
+    const auto request = guerrillamail::protocol::requests::build_check_email_probe_request(
         "https://mail.example.test:8443/ajax.php",
         "token123",
-        false
+        "alias@example.com",
+        "1700000000000"
     );
+    const auto& headers = request.headers;
 
     REQUIRE(header_value(headers, "Host") == "mail.example.test:8443");
     REQUIRE(
-        header_value(headers, "User-Agent") == guerrillamail::protocol::requests::default_user_agent()
+        header_value(headers, "User-Agent") ==
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:131.0) Gecko/20100101 Firefox/131.0"
     );
     REQUIRE(header_value(headers, "Accept") == "application/json, text/javascript, */*; q=0.01");
     REQUIRE(header_value(headers, "Accept-Language") == "en-US,en;q=0.5");
@@ -52,40 +55,14 @@ TEST_CASE("ajax headers match rust-aligned defaults", "[requests]") {
 }
 
 TEST_CASE("ajax headers include content type for form posts", "[requests]") {
-    const auto headers = guerrillamail::protocol::requests::build_ajax_headers(
+    const auto request = guerrillamail::protocol::requests::build_set_email_user_request(
         "https://www.guerrillamail.com/ajax.php",
         "token123",
-        true
+        "alias"
     );
 
     REQUIRE(
-        header_value(headers, "Content-Type") == "application/x-www-form-urlencoded; charset=UTF-8"
-    );
-}
-
-TEST_CASE("check_email probe url mirrors rust query shape", "[requests]") {
-    const auto url = guerrillamail::protocol::requests::build_check_email_probe_url(
-        "https://www.guerrillamail.com/ajax.php",
-        "alias@example.com",
-        "1700000000000"
-    );
-
-    REQUIRE(
-        url ==
-        "https://www.guerrillamail.com/ajax.php?f=check_email&seq=1&site=guerrillamail.com&in=alias&_=1700000000000"
-    );
-}
-
-TEST_CASE("check_email probe url derives site from configured ajax host", "[requests]") {
-    const auto url = guerrillamail::protocol::requests::build_check_email_probe_url(
-        "https://mail.example.test:8443/ajax.php",
-        "alias@example.com",
-        "1700000000000"
-    );
-
-    REQUIRE(
-        url ==
-        "https://mail.example.test:8443/ajax.php?f=check_email&seq=1&site=mail.example.test&in=alias&_=1700000000000"
+        header_value(request.headers, "Content-Type") == "application/x-www-form-urlencoded; charset=UTF-8"
     );
 }
 
@@ -104,6 +81,20 @@ TEST_CASE("check_email probe request builds a GET with rust-aligned headers", "[
         "https://www.guerrillamail.com/ajax.php?f=check_email&seq=1&site=guerrillamail.com&in=alias&_=1700000000000"
     );
     REQUIRE(header_value(request.headers, "Authorization") == "ApiToken token123");
+}
+
+TEST_CASE("check_email probe request derives site from configured ajax host", "[requests]") {
+    const auto request = guerrillamail::protocol::requests::build_check_email_probe_request(
+        "https://mail.example.test:8443/ajax.php",
+        "token123",
+        "alias@example.com",
+        "1700000000000"
+    );
+
+    REQUIRE(
+        request.url ==
+        "https://mail.example.test:8443/ajax.php?f=check_email&seq=1&site=mail.example.test&in=alias&_=1700000000000"
+    );
 }
 
 TEST_CASE("check_email probe allows overriding only the query site value", "[requests]") {
@@ -345,17 +336,14 @@ TEST_CASE("set_email_user request rejects an empty override", "[requests]") {
     }
 }
 
-TEST_CASE("extract_alias accepts alias-only input", "[requests]") {
-    REQUIRE(guerrillamail::protocol::requests::extract_alias("alias") == "alias");
-}
-
-TEST_CASE("extract_alias returns the local-part of a full address", "[requests]") {
-    REQUIRE(guerrillamail::protocol::requests::extract_alias("alias@example.com") == "alias");
-}
-
-TEST_CASE("extract_alias rejects empty alias input", "[requests]") {
+TEST_CASE("check_email probe rejects empty alias input", "[requests]") {
     try {
-        (void)guerrillamail::protocol::requests::extract_alias("@example.com");
+        (void)guerrillamail::protocol::requests::build_check_email_probe_request(
+            "https://www.guerrillamail.com/ajax.php",
+            "token123",
+            "@example.com",
+            "1700000000000"
+        );
         FAIL("expected exception");
     } catch (const guerrillamail::Error& error) {
         REQUIRE(error.code() == guerrillamail::ErrorCode::invalid_argument);
@@ -364,17 +352,9 @@ TEST_CASE("extract_alias rejects empty alias input", "[requests]") {
 
 TEST_CASE("invalid ajax url becomes invalid_argument", "[requests]") {
     try {
-        (void)guerrillamail::protocol::requests::build_ajax_headers("not-a-url", "token123", false);
-        FAIL("expected exception");
-    } catch (const guerrillamail::Error& error) {
-        REQUIRE(error.code() == guerrillamail::ErrorCode::invalid_argument);
-    }
-}
-
-TEST_CASE("invalid ajax url probe becomes invalid_argument", "[requests]") {
-    try {
-        (void)guerrillamail::protocol::requests::build_check_email_probe_url(
+        (void)guerrillamail::protocol::requests::build_check_email_probe_request(
             "not-a-url",
+            "token123",
             "alias@example.com",
             "1700000000000"
         );

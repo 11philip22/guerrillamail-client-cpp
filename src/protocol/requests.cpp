@@ -158,8 +158,6 @@ std::string resolve_site_form_value(
     return metadata.site;
 }
 
-} // namespace
-
 std::string_view default_user_agent() noexcept {
     return kDefaultUserAgent;
 }
@@ -271,6 +269,8 @@ std::string build_fetch_email_url(
     url += query;
     return url;
 }
+
+} // namespace
 
 transport::Request build_check_email_probe_request(
     std::string_view ajax_url,
