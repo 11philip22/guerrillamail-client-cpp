@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-29
+
 ### Added
 - Initial C++20 project scaffold with CMake-based library, example, and test targets.
 - `vcpkg` dependency management via `third_party/vcpkg` submodule and `vcpkg.json` manifest.
@@ -55,3 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected the documented `ctest` live-test command to match the Catch-discovered test name.
 - Rejected empty explicit `ClientOptions.site` overrides as `invalid_argument` instead of silently falling back to the derived host value.
 - Classified missing `Attachment::part_id` in `fetch_attachment(...)` as `invalid_argument` so caller-constructed invalid attachment inputs are reported as input errors rather than response-parse failures.
+
+[unreleased]: https://git.woldtech.nl/woldtech/guerrillamail-client-cpp/compare/v0.1.0...HEAD
+[0.1.0]: https://git.woldtech.nl/woldtech/guerrillamail-client-cpp/releases/tag/v0.1.0
