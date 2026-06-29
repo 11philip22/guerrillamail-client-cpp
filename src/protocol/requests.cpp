@@ -135,6 +135,13 @@ std::string build_query_string(const std::vector<std::pair<std::string_view, std
     return query.str();
 }
 
+std::string append_query(std::string_view base_url, const std::vector<std::pair<std::string_view, std::string>>& params) {
+    auto url = std::string(base_url);
+    url += (url.find('?') == std::string::npos) ? '?' : '&';
+    url += build_query_string(params);
+    return url;
+}
+
 std::string trim_trailing_slash(std::string value) {
     while (!value.empty() && value.back() == '/') {
         value.pop_back();
@@ -173,15 +180,13 @@ std::string extract_alias(std::string_view email) {
 }
 
 std::vector<transport::Header> build_ajax_headers(
-    std::string_view ajax_url,
+    const AjaxUrlMetadata& metadata,
     std::string_view api_token,
     bool include_content_type
 ) {
     if (api_token.empty()) {
         throw_invalid_argument("api_token must not be empty");
     }
-
-    const auto metadata = parse_ajax_url(ajax_url);
 
     auto headers = std::vector<transport::Header>{
         transport::Header{"Host", metadata.host},
@@ -208,68 +213,6 @@ std::vector<transport::Header> build_ajax_headers(
     return headers;
 }
 
-std::string build_check_email_probe_url(
-    std::string_view ajax_url,
-    std::string_view email,
-    std::string_view timestamp,
-    std::optional<std::string_view> site_override
-) {
-    if (ajax_url.empty()) {
-        throw_invalid_argument("ajax_url must not be empty");
-    }
-    if (timestamp.empty()) {
-        throw_invalid_argument("timestamp must not be empty");
-    }
-
-    const auto metadata = parse_ajax_url(ajax_url);
-    const auto alias = extract_alias(email);
-    const auto query = build_query_string({
-        {"f", "check_email"},
-        {"seq", "1"},
-        {"site", resolve_site_form_value(metadata, site_override)},
-        {"in", alias},
-        {"_", std::string(timestamp)},
-    });
-
-    auto url = std::string(ajax_url);
-    url += (url.find('?') == std::string::npos) ? '?' : '&';
-    url += query;
-    return url;
-}
-
-std::string build_fetch_email_url(
-    std::string_view ajax_url,
-    std::string_view email,
-    std::string_view mail_id,
-    std::string_view timestamp,
-    std::optional<std::string_view> site_override
-) {
-    if (ajax_url.empty()) {
-        throw_invalid_argument("ajax_url must not be empty");
-    }
-    if (mail_id.empty()) {
-        throw_invalid_argument("mail_id must not be empty");
-    }
-    if (timestamp.empty()) {
-        throw_invalid_argument("timestamp must not be empty");
-    }
-
-    const auto metadata = parse_ajax_url(ajax_url);
-    const auto alias = extract_alias(email);
-    const auto query = build_query_string({
-        {"f", "fetch_email"},
-        {"email_id", std::string(mail_id)},
-        {"site", resolve_site_form_value(metadata, site_override)},
-        {"in", alias},
-        {"_", std::string(timestamp)},
-    });
-
-    auto url = std::string(ajax_url);
-    url += (url.find('?') == std::string::npos) ? '?' : '&';
-    url += query;
-    return url;
-}
-
 } // namespace
 
 transport::Request build_check_email_probe_request(
@@ -279,10 +222,23 @@ transport::Request build_check_email_probe_request(
     std::string_view timestamp,
     std::optional<std::string_view> site_override
 ) {
+    if (timestamp.empty()) {
+        throw_invalid_argument("timestamp must not be empty");
+    }
+
+    const auto metadata = parse_ajax_url(ajax_url);
+    const auto alias = extract_alias(email);
+
     return transport::Request{
         transport::HttpMethod::get,
-        build_check_email_probe_url(ajax_url, email, timestamp, site_override),
-        build_ajax_headers(ajax_url, api_token, false),
+        append_query(ajax_url, {
+            {"f", "check_email"},
+            {"seq", "1"},
+            {"site", resolve_site_form_value(metadata, site_override)},
+            {"in", alias},
+            {"_", std::string(timestamp)},
+        }),
+        build_ajax_headers(metadata, api_token, false),
         {},
     };
 }
@@ -298,14 +254,11 @@ transport::Request build_set_email_user_request(
     }
 
     const auto metadata = parse_ajax_url(ajax_url);
-    auto url = std::string(ajax_url);
-    url += (url.find('?') == std::string::npos) ? '?' : '&';
-    url += build_query_string({{"f", "set_email_user"}});
 
     return transport::Request{
         transport::HttpMethod::post,
-        std::move(url),
-        build_ajax_headers(ajax_url, api_token, true),
+        append_query(ajax_url, {{"f", "set_email_user"}}),
+        build_ajax_headers(metadata, api_token, true),
         build_query_string({
             {"email_user", std::string(alias)},
             {"lang", "en"},
@@ -325,10 +278,26 @@ transport::Request build_fetch_email_request(
     std::string_view timestamp,
     std::optional<std::string_view> site_override
 ) {
+    if (mail_id.empty()) {
+        throw_invalid_argument("mail_id must not be empty");
+    }
+    if (timestamp.empty()) {
+        throw_invalid_argument("timestamp must not be empty");
+    }
+
+    const auto metadata = parse_ajax_url(ajax_url);
+    const auto alias = extract_alias(email);
+
     return transport::Request{
         transport::HttpMethod::get,
-        build_fetch_email_url(ajax_url, email, mail_id, timestamp, site_override),
-        build_ajax_headers(ajax_url, api_token, false),
+        append_query(ajax_url, {
+            {"f", "fetch_email"},
+            {"email_id", std::string(mail_id)},
+            {"site", resolve_site_form_value(metadata, site_override)},
+            {"in", alias},
+            {"_", std::string(timestamp)},
+        }),
+        build_ajax_headers(metadata, api_token, false),
         {},
     };
 }
@@ -345,14 +314,11 @@ transport::Request build_forget_me_request(
 
     const auto metadata = parse_ajax_url(ajax_url);
     const auto alias = extract_alias(email);
-    auto url = std::string(ajax_url);
-    url += (url.find('?') == std::string::npos) ? '?' : '&';
-    url += build_query_string({{"f", "forget_me"}});
 
     return transport::Request{
         transport::HttpMethod::post,
-        std::move(url),
-        build_ajax_headers(ajax_url, api_token, true),
+        append_query(ajax_url, {{"f", "forget_me"}}),
+        build_ajax_headers(metadata, api_token, true),
         build_query_string({
             {"site", resolve_site_form_value(metadata, site_override)},
             {"in", alias},
@@ -393,11 +359,12 @@ transport::Request build_fetch_attachment_request(
     }
 
     inbox_url += build_query_string(query);
+    const auto metadata = parse_ajax_url(base_url);
 
     return transport::Request{
         transport::HttpMethod::get,
         std::move(inbox_url),
-        build_ajax_headers(base_url, api_token, true),
+        build_ajax_headers(metadata, api_token, true),
         {},
     };
 }

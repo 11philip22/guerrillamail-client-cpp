@@ -1,5 +1,6 @@
 #include "protocol/bootstrap.hpp"
 
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -41,37 +42,18 @@ std::string perform(transport::CurlSession& session, std::string_view base_url) 
 }
 
 std::string extract_api_token(std::string_view html) {
-    constexpr std::string_view marker = "api_token";
+    static const auto token_pattern = std::regex(R"(api_token\s*:\s*'([^']*)')");
+    std::match_results<std::string_view::const_iterator> match;
 
-    for (auto key = html.find(marker); key != std::string_view::npos; key = html.find(marker, key + marker.size())) {
-        auto value = key + marker.size();
-        while (value < html.size() && (html[value] == ' ' || html[value] == '\t' || html[value] == '\n' || html[value] == '\r')) {
-            ++value;
-        }
-        if (value == html.size() || html[value] != ':') {
-            continue;
-        }
-
-        ++value;
-        while (value < html.size() && (html[value] == ' ' || html[value] == '\t' || html[value] == '\n' || html[value] == '\r')) {
-            ++value;
-        }
-        if (value == html.size() || html[value] != '\'') {
-            continue;
-        }
-
-        const auto end = html.find('\'', value + 1);
-        if (end == std::string_view::npos) {
-            continue;
-        }
-        if (end == value + 1) {
+    if (std::regex_search(html.begin(), html.end(), match, token_pattern)) {
+        if (match[1].length() == 0) {
             throw guerrillamail::Error(
                 guerrillamail::ErrorCode::token_parse,
                 "api token is empty"
             );
         }
 
-        return std::string(html.substr(value + 1, end - value - 1));
+        return std::string(match[1].first, match[1].second);
     }
 
     throw guerrillamail::Error(
