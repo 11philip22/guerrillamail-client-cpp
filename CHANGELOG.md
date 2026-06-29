@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Low-value smoke/error tests and unused test-support scaffolding so the suite focuses on protocol and parsing behavior.
+
 ## [0.1.0] - 2026-06-29
 
 ### Added
