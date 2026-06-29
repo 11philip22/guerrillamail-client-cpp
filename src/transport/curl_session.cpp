@@ -168,7 +168,7 @@ CurlSession::CurlSession(CurlSession&& other) noexcept = default;
 
 CurlSession& CurlSession::operator=(CurlSession&& other) noexcept = default;
 
-Response CurlSession::execute(const Request& request) {
+std::string CurlSession::execute(const Request& request) {
     if (impl_ == nullptr || impl_->handle == nullptr) {
         throw guerrillamail::Error(guerrillamail::ErrorCode::internal, "curl session is not initialized");
     }
@@ -240,7 +240,7 @@ Response CurlSession::execute(const Request& request) {
         );
     }
 
-    return Response{status_code, std::move(response_body)};
+    return response_body;
 }
 
 } // namespace guerrillamail::transport

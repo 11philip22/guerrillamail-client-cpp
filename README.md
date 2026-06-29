@@ -50,8 +50,8 @@ The public API is intentionally small and synchronous. Transport, JSON parsing, 
 - typed `guerrillamail::Error` exceptions with distinct error categories
 - `libcurl` transport with session cookies
 - `nlohmann/json` response parsing
-- Catch2 unit and integration tests
-- opt-in live tests for real GuerrillaMail behavior
+- Catch2 unit tests
+- opt-in live integration tests for real GuerrillaMail behavior
 
 ## Getting Started
 
@@ -128,6 +128,8 @@ The default suite includes deterministic unit tests for parsing, request constru
 Live GuerrillaMail checks are opt-in because they depend on the network and the external service:
 
 ```powershell
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="third_party/vcpkg/scripts/buildsystems/vcpkg.cmake" -DGUERRILLAMAIL_CPP_BUILD_LIVE_TESTS=ON
+cmake --build build --config Debug
 $env:GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS = "1"
 ctest -C Debug --output-on-failure --test-dir build --tests-regex "live"
 ```

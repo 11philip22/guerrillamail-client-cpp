@@ -32,13 +32,13 @@ std::string perform(transport::CurlSession& session, std::string_view base_url) 
         );
     }
 
-    const auto response = session.execute(transport::Request{
+    const auto body = session.execute(transport::Request{
         transport::HttpMethod::get,
         std::string(base_url),
         build_bootstrap_headers(),
     });
 
-    return extract_api_token(response.body);
+    return extract_api_token(body);
 }
 
 std::string extract_api_token(std::string_view html) {

@@ -4,19 +4,22 @@ The integration suite contains opt-in live tests that validate current Guerrilla
 
 ## Live Tests
 
-`live_protocol_validation_test.cpp` is intentionally skipped unless you opt in with:
+Live tests are not built by default. Enable the CMake option, rebuild, then set the runtime guard:
 
 ```powershell
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="third_party/vcpkg/scripts/buildsystems/vcpkg.cmake" -DGUERRILLAMAIL_CPP_BUILD_LIVE_TESTS=ON
+cmake --build build --config Debug
 $env:GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS = "1"
-ctest --output-on-failure --tests-regex "live bootstrap and ajax probe validate current GuerrillaMail behavior"
+ctest -C Debug --output-on-failure --test-dir build --tests-regex "live"
 ```
 
-What the live test validates:
+What the live tests validate:
 
 - bootstrap succeeds against `https://www.guerrillamail.com`
 - current homepage HTML still exposes `api_token`
 - the default AJAX header set is sufficient for a real `check_email` probe
 - a follow-up probe without bootstrap cookies is compared and the result is surfaced in test output
+- create/list/delete works through the public `Client`
 - the local Windows `libcurl` runtime can complete a real HTTPS request in practice
 
 ## Attachment Flow Notes

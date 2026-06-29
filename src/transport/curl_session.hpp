@@ -26,11 +26,6 @@ struct Request {
     std::string body;
 };
 
-struct Response {
-    long status_code = 0;
-    std::string body;
-};
-
 struct SessionOptions {
     std::chrono::milliseconds timeout{30000};
     std::optional<std::string> proxy;
@@ -48,7 +43,7 @@ public:
     CurlSession(const CurlSession&) = delete;
     CurlSession& operator=(const CurlSession&) = delete;
 
-    [[nodiscard]] Response execute(const Request& request);
+    [[nodiscard]] std::string execute(const Request& request);
 
 private:
     struct Impl;

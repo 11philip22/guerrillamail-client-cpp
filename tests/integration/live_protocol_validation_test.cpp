@@ -1,6 +1,5 @@
 #include <chrono>
 #include <cstdlib>
-#include <optional>
 #include <string>
 #include <string_view>
 
@@ -56,13 +55,11 @@ TEST_CASE("live bootstrap and ajax probe validate current GuerrillaMail behavior
         alias,
         make_timestamp()
     );
-    const auto same_session_response = bootstrapped_session.execute(same_session_request);
-    INFO("same-session response status: " << same_session_response.status_code);
-    const auto same_session_json = guerrillamail::protocol::parsing::parse_json(same_session_response.body);
+    const auto same_session_body = bootstrapped_session.execute(same_session_request);
+    const auto same_session_json = guerrillamail::protocol::parsing::parse_json(same_session_body);
     REQUIRE(has_message_list(same_session_json));
 
     bool fresh_session_succeeded = false;
-    std::optional<guerrillamail::ErrorCode> fresh_session_error_code;
     std::string fresh_session_outcome;
 
     try {
@@ -73,14 +70,13 @@ TEST_CASE("live bootstrap and ajax probe validate current GuerrillaMail behavior
             alias,
             make_timestamp()
         );
-        const auto fresh_session_response = fresh_session.execute(fresh_session_request);
-        const auto fresh_session_json = guerrillamail::protocol::parsing::parse_json(fresh_session_response.body);
+        const auto fresh_session_body = fresh_session.execute(fresh_session_request);
+        const auto fresh_session_json = guerrillamail::protocol::parsing::parse_json(fresh_session_body);
         fresh_session_succeeded = has_message_list(fresh_session_json);
         fresh_session_outcome = fresh_session_succeeded
                                     ? "fresh-session probe succeeded without bootstrap cookies"
-                                    : "fresh-session probe returned JSON without `list`: " + fresh_session_response.body;
+                                    : "fresh-session probe returned JSON without `list`: " + fresh_session_body;
     } catch (const guerrillamail::Error& error) {
-        fresh_session_error_code = error.code();
         fresh_session_outcome = error.what();
     }
 

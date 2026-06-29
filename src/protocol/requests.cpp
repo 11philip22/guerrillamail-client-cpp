@@ -165,10 +165,6 @@ std::string resolve_site_form_value(
     return metadata.site;
 }
 
-std::string_view default_user_agent() noexcept {
-    return kDefaultUserAgent;
-}
-
 std::string extract_alias(std::string_view email) {
     const auto separator = email.find('@');
     const auto alias = email.substr(0, separator);
@@ -190,7 +186,7 @@ std::vector<transport::Header> build_ajax_headers(
 
     auto headers = std::vector<transport::Header>{
         transport::Header{"Host", metadata.host},
-        transport::Header{"User-Agent", std::string(default_user_agent())},
+        transport::Header{"User-Agent", std::string(kDefaultUserAgent)},
         transport::Header{"Accept", std::string(kAjaxAccept)},
         transport::Header{"Accept-Language", std::string(kAcceptLanguage)},
         transport::Header{"Authorization", "ApiToken " + std::string(api_token)},

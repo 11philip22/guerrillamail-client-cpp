@@ -86,25 +86,25 @@ std::string Client::create_email(std::string_view alias) const {
         throw Error(ErrorCode::invalid_argument, "alias must not contain `@`");
     }
 
-    const auto response = impl_->session.execute(protocol::requests::build_set_email_user_request(
+    const auto body = impl_->session.execute(protocol::requests::build_set_email_user_request(
         impl_->options.ajax_url,
         impl_->api_token,
         alias,
         site_override(impl_->options)
     ));
-    const auto json = protocol::parsing::parse_json(response.body);
+    const auto json = protocol::parsing::parse_json(body);
     return protocol::parsing::require_string_member(json, "email_addr");
 }
 
 std::vector<Message> Client::get_messages(std::string_view email) const {
-    const auto response = impl_->session.execute(protocol::requests::build_check_email_probe_request(
+    const auto body = impl_->session.execute(protocol::requests::build_check_email_probe_request(
         impl_->options.ajax_url,
         impl_->api_token,
         email,
         make_timestamp(),
         site_override(impl_->options)
     ));
-    const auto json = protocol::parsing::parse_json(response.body);
+    const auto json = protocol::parsing::parse_json(body);
     return protocol::parsing::parse_message_list(json);
 }
 
@@ -113,7 +113,7 @@ EmailDetails Client::fetch_email(std::string_view email, std::string_view mail_i
         throw Error(ErrorCode::invalid_argument, "mail_id must not be empty");
     }
 
-    const auto response = impl_->session.execute(protocol::requests::build_fetch_email_request(
+    const auto body = impl_->session.execute(protocol::requests::build_fetch_email_request(
         impl_->options.ajax_url,
         impl_->api_token,
         email,
@@ -121,7 +121,7 @@ EmailDetails Client::fetch_email(std::string_view email, std::string_view mail_i
         make_timestamp(),
         site_override(impl_->options)
     ));
-    const auto json = protocol::parsing::parse_json(response.body);
+    const auto json = protocol::parsing::parse_json(body);
     return protocol::parsing::parse_email_details(json);
 }
 
@@ -151,7 +151,7 @@ std::vector<std::uint8_t> Client::fetch_attachment(
                                ? std::optional<std::string_view>(details.sid_token.value())
                                : std::nullopt;
 
-    const auto response = impl_->session.execute(protocol::requests::build_fetch_attachment_request(
+    const auto body = impl_->session.execute(protocol::requests::build_fetch_attachment_request(
         impl_->options.base_url,
         impl_->api_token,
         mail_id,
@@ -159,7 +159,7 @@ std::vector<std::uint8_t> Client::fetch_attachment(
         sid_token
     ));
 
-    return std::vector<std::uint8_t>(response.body.begin(), response.body.end());
+    return std::vector<std::uint8_t>(body.begin(), body.end());
 }
 
 } // namespace guerrillamail
