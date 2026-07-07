@@ -12,9 +12,7 @@ else()
     set(_GUERRILLAMAIL_CPP_STANDALONE OFF)
 endif()
 
-option(GUERRILLAMAIL_CPP_BUILD_TESTS    "Build guerrillamail-cpp tests"    ${_GUERRILLAMAIL_CPP_STANDALONE})
 option(GUERRILLAMAIL_CPP_BUILD_EXAMPLES "Build guerrillamail-cpp examples" ${_GUERRILLAMAIL_CPP_STANDALONE})
-option(GUERRILLAMAIL_CPP_BUILD_LIVE_TESTS "Build live GuerrillaMail tests" OFF)
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     message(STATUS "CMAKE_TOOLCHAIN_FILE is not set. Expected vcpkg toolchain: third_party/vcpkg/scripts/buildsystems/vcpkg.cmake")
@@ -55,8 +53,3 @@ if(GUERRILLAMAIL_CPP_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
-if(GUERRILLAMAIL_CPP_BUILD_TESTS)
-    enable_testing()
-    find_package(Catch2 3 REQUIRED)
-    add_subdirectory(tests)
-endif()

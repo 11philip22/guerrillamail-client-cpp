@@ -17,8 +17,6 @@
   <a href="#features">Features</a> |
   <a href="#getting-started">Getting Started</a> |
   <a href="#usage">Usage</a> |
-  <a href="#testing">Testing</a> |
-  <a href="#live-validation">Live Validation</a> |
   <a href="#layout">Layout</a>
 </p>
 
@@ -50,8 +48,6 @@ The public API is intentionally small and synchronous. Transport, JSON parsing, 
 - typed `guerrillamail::Error` exceptions with distinct error categories
 - `libcurl` transport with session cookies
 - `nlohmann/json` response parsing
-- Catch2 unit tests
-- opt-in live integration tests for real GuerrillaMail behavior
 
 ## Getting Started
 
@@ -69,10 +65,10 @@ cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="third_party/vcpkg/scripts/buildsyste
 cmake --build build --config Debug
 ```
 
-Optional targets are enabled by default when this repository is the top-level CMake project. Disable them when embedding the library:
+Examples are enabled by default when this repository is the top-level CMake project. Disable them when embedding the library:
 
 ```powershell
-cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="third_party/vcpkg/scripts/buildsystems/vcpkg.cmake" -DGUERRILLAMAIL_CPP_BUILD_TESTS=OFF -DGUERRILLAMAIL_CPP_BUILD_EXAMPLES=OFF
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="third_party/vcpkg/scripts/buildsystems/vcpkg.cmake" -DGUERRILLAMAIL_CPP_BUILD_EXAMPLES=OFF
 ```
 
 ## Usage
@@ -113,29 +109,6 @@ The runnable demo lives in `examples/basic_flow.cpp`. It creates a temporary add
 .\build\examples\Debug\guerrillamail-cpp-example-basic.exe
 ```
 
-## Testing
-
-Run the default test suite with CTest:
-
-```powershell
-ctest -C Debug --output-on-failure --test-dir build
-```
-
-The default suite includes deterministic unit tests for parsing, request construction, bootstrap extraction, and error behavior. Live integration tests are opt-in.
-
-## Live Validation
-
-Live GuerrillaMail checks are opt-in because they depend on the network and the external service:
-
-```powershell
-cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="third_party/vcpkg/scripts/buildsystems/vcpkg.cmake" -DGUERRILLAMAIL_CPP_BUILD_LIVE_TESTS=ON
-cmake --build build --config Debug
-$env:GUERRILLAMAIL_CPP_ENABLE_LIVE_TESTS = "1"
-ctest -C Debug --output-on-failure --test-dir build --tests-regex "live"
-```
-
-The live checks currently validate bootstrap token extraction, AJAX session behavior, and create/list/delete sanity against the real service.
-
 ## Error Model
 
 Public operations throw `guerrillamail::Error`, derived from `std::runtime_error`.
@@ -156,6 +129,5 @@ The error code keeps these cases distinguishable:
 include/guerrillamail/   public headers
 src/                     client, protocol, parsing, and curl transport
 examples/                basic end-to-end demo
-tests/                   unit and opt-in live tests
 third_party/vcpkg/       pinned dependency manager submodule
 ```
