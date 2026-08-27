@@ -1,7 +1,6 @@
 #ifndef GUERRILLAMAIL_TYPES_HPP
 #define GUERRILLAMAIL_TYPES_HPP
 
-#include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
@@ -31,7 +30,6 @@ struct EmailDetails {
     std::string mail_body;
     std::string mail_timestamp;
     std::vector<Attachment> attachments;
-    std::optional<std::uint32_t> attachment_count;
     std::optional<std::string> sid_token;
 };
 
