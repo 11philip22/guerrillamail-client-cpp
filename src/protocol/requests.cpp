@@ -6,7 +6,6 @@
 #include <optional>
 #include <limits>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -122,17 +121,14 @@ std::string percent_encode(std::string_view input) {
 }
 
 std::string build_query_string(const std::vector<std::pair<std::string_view, std::string>>& params) {
-    std::ostringstream query;
-
-    for (std::size_t index = 0; index < params.size(); ++index) {
-        if (index != 0) {
-            query << '&';
+    std::string query;
+    for (const auto& [key, value] : params) {
+        if (!query.empty()) {
+            query.push_back('&');
         }
-
-        query << percent_encode(params[index].first) << '=' << percent_encode(params[index].second);
+        query.append(percent_encode(key)).append("=").append(percent_encode(value));
     }
-
-    return query.str();
+    return query;
 }
 
 std::string append_query(std::string_view base_url, const std::vector<std::pair<std::string_view, std::string>>& params) {
