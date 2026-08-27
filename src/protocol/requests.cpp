@@ -241,10 +241,6 @@ transport::Request build_set_email_user_request(
     std::string_view alias,
     std::optional<std::string_view> site_override
 ) {
-    if (ajax_url.empty()) {
-        throw_invalid_argument("ajax_url must not be empty");
-    }
-
     const auto metadata = parse_ajax_url(ajax_url);
 
     return transport::Request{
@@ -300,10 +296,6 @@ transport::Request build_forget_me_request(
     std::string_view email,
     std::optional<std::string_view> site_override
 ) {
-    if (ajax_url.empty()) {
-        throw_invalid_argument("ajax_url must not be empty");
-    }
-
     const auto metadata = parse_ajax_url(ajax_url);
     const auto alias = extract_alias(email);
 

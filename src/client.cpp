@@ -109,10 +109,6 @@ std::vector<Message> Client::get_messages(std::string_view email) const {
 }
 
 EmailDetails Client::fetch_email(std::string_view email, std::string_view mail_id) const {
-    if (mail_id.empty()) {
-        throw Error(ErrorCode::invalid_argument, "mail_id must not be empty");
-    }
-
     const auto body = impl_->session.execute(protocol::requests::build_fetch_email_request(
         impl_->options.ajax_url,
         impl_->api_token,
@@ -139,9 +135,6 @@ std::vector<std::uint8_t> Client::fetch_attachment(
     std::string_view mail_id,
     const Attachment& attachment
 ) const {
-    if (mail_id.empty()) {
-        throw Error(ErrorCode::invalid_argument, "mail_id must not be empty");
-    }
     if (attachment.part_id.empty()) {
         throw Error(ErrorCode::invalid_argument, "attachment missing part_id");
     }
