@@ -1,6 +1,8 @@
 #ifndef GUERRILLAMAIL_TRANSPORT_CURL_SESSION_HPP
 #define GUERRILLAMAIL_TRANSPORT_CURL_SESSION_HPP
 
+#include <curl/curl.h>
+
 #include <chrono>
 #include <memory>
 #include <optional>
@@ -46,8 +48,7 @@ public:
     [[nodiscard]] std::string execute(const Request& request);
 
 private:
-    struct Impl;
-    std::unique_ptr<Impl> impl_;
+    std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> handle_{nullptr, curl_easy_cleanup};
 };
 
 } // namespace guerrillamail::transport

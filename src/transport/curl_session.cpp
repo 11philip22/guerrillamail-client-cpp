@@ -133,32 +133,19 @@ std::string make_http_status_message(long status_code) {
 
 } // namespace
 
-struct CurlSession::Impl {
-    explicit Impl(const SessionOptions& options) {
-        ensure_curl_global_init();
-
-        handle = curl_easy_init();
-        if (handle == nullptr) {
-            throw guerrillamail::Error(
-                guerrillamail::ErrorCode::internal,
-                "curl_easy_init failed"
-            );
-        }
-
-        check_curl_code(curl_easy_setopt(handle, CURLOPT_COOKIEFILE, ""), "CURLOPT_COOKIEFILE");
-        apply_session_options(handle, options);
+CurlSession::CurlSession(SessionOptions options) {
+    ensure_curl_global_init();
+    handle_.reset(curl_easy_init());
+    if (handle_ == nullptr) {
+        throw guerrillamail::Error(
+            guerrillamail::ErrorCode::internal,
+            "curl_easy_init failed"
+        );
     }
 
-    ~Impl() {
-        if (handle != nullptr) {
-            curl_easy_cleanup(handle);
-        }
-    }
-
-    CURL* handle = nullptr;
-};
-
-CurlSession::CurlSession(SessionOptions options) : impl_(std::make_unique<Impl>(options)) {}
+    check_curl_code(curl_easy_setopt(handle_.get(), CURLOPT_COOKIEFILE, ""), "CURLOPT_COOKIEFILE");
+    apply_session_options(handle_.get(), options);
+}
 
 CurlSession::~CurlSession() = default;
 
@@ -167,7 +154,7 @@ CurlSession::CurlSession(CurlSession&& other) noexcept = default;
 CurlSession& CurlSession::operator=(CurlSession&& other) noexcept = default;
 
 std::string CurlSession::execute(const Request& request) {
-    if (impl_ == nullptr || impl_->handle == nullptr) {
+    if (handle_ == nullptr) {
         throw guerrillamail::Error(guerrillamail::ErrorCode::internal, "curl session is not initialized");
     }
 
@@ -175,7 +162,7 @@ std::string CurlSession::execute(const Request& request) {
         throw guerrillamail::Error(guerrillamail::ErrorCode::invalid_argument, "request url must not be empty");
     }
 
-    auto* const handle = impl_->handle;
+    auto* const handle = handle_.get();
 
     std::string response_body;
     std::array<char, CURL_ERROR_SIZE> error_buffer{};
