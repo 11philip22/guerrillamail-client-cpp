@@ -72,14 +72,6 @@ void ensure_curl_global_init() {
     }
 }
 
-std::string describe_curl_failure(CURLcode code, const char* error_buffer) {
-    if (error_buffer != nullptr && error_buffer[0] != '\0') {
-        return error_buffer;
-    }
-
-    return curl_easy_strerror(code);
-}
-
 size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata) {
     auto* body = static_cast<std::string*>(userdata);
     const auto bytes = size * nmemb;
@@ -125,10 +117,6 @@ void apply_session_options(CURL* handle, const SessionOptions& options) {
     } else {
         check_curl_code(curl_easy_setopt(handle, CURLOPT_PROXY, ""), "CURLOPT_PROXY");
     }
-}
-
-std::string make_http_status_message(long status_code) {
-    return "http request failed with status " + std::to_string(status_code);
 }
 
 } // namespace
@@ -207,9 +195,10 @@ std::string CurlSession::execute(const Request& request) {
     const auto result = curl_easy_perform(handle);
 
     if (result != CURLE_OK) {
+        const auto* message = error_buffer[0] != '\0' ? error_buffer.data() : curl_easy_strerror(result);
         throw guerrillamail::Error(
             guerrillamail::ErrorCode::transport,
-            describe_curl_failure(result, error_buffer.data())
+            message
         );
     }
 
@@ -219,7 +208,7 @@ std::string CurlSession::execute(const Request& request) {
     if (status_code < 200 || status_code >= 300) {
         throw guerrillamail::Error(
             guerrillamail::ErrorCode::http_status,
-            make_http_status_message(status_code),
+            "http request failed with status " + std::to_string(status_code),
             status_code
         );
     }
