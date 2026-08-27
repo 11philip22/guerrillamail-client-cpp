@@ -6,7 +6,6 @@
 #include <limits>
 #include <mutex>
 #include <string>
-#include <utility>
 
 #include "guerrillamail/error.hpp"
 
@@ -135,7 +134,7 @@ std::string make_http_status_message(long status_code) {
 } // namespace
 
 struct CurlSession::Impl {
-    explicit Impl(SessionOptions options_in) : options(std::move(options_in)) {
+    explicit Impl(const SessionOptions& options) {
         ensure_curl_global_init();
 
         handle = curl_easy_init();
@@ -157,10 +156,9 @@ struct CurlSession::Impl {
     }
 
     CURL* handle = nullptr;
-    SessionOptions options;
 };
 
-CurlSession::CurlSession(SessionOptions options) : impl_(std::make_unique<Impl>(std::move(options))) {}
+CurlSession::CurlSession(SessionOptions options) : impl_(std::make_unique<Impl>(options)) {}
 
 CurlSession::~CurlSession() = default;
 
@@ -178,7 +176,6 @@ std::string CurlSession::execute(const Request& request) {
     }
 
     auto* const handle = impl_->handle;
-    apply_session_options(handle, impl_->options);
 
     std::string response_body;
     std::array<char, CURL_ERROR_SIZE> error_buffer{};
